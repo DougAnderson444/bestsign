@@ -3,15 +3,15 @@ pub mod config;
 use std::cell::RefCell;
 
 pub use config::Config;
-use config::{VladCid, VladConfig};
+use config::VladConfig;
 use multicid::{cid, vlad};
 use multihash::mh;
 use multisig::Multisig;
 
-use crate::{error::OpenError, Error};
+use crate::{error::OpenError, ops::update::op, Error};
 use multicodec::Codec;
 use multikey::{Multikey, Views as _};
-use provenance_log::{Key, Log, Script};
+use provenance_log::{entry, error::EntryError, Error as PlogError, Key, Log, OpId};
 
 use crate::ops::update::OpParams;
 
@@ -37,7 +37,7 @@ pub trait EntrySigner {
 pub fn create(
     config: Config,
     key_manager: impl KeyManager,
-    _signer: impl EntrySigner,
+    signer: impl EntrySigner,
 ) -> Result<Log, crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
@@ -137,51 +137,110 @@ pub fn create(
                 Ok(())
             }
         };
-
-        // 1. Construct the VLAD from provided parameters
-        let VladConfig {
-            key: vlad_key_params,
-            cid: vlad_cid_params,
-        } = &config.vlad_params.clone();
-
-        // use load key to load the vlad_key and the op_params
-        let vlad_mk = load_key(vlad_key_params)?;
-
-        // get the cid for the first lock script, which is config entry_lock_script
-        // destructure vlad_cid_params into the Script::Code (r throw Error) to extract the data
-        let first_lock_script = match vlad_cid_params {
-            VladCid(OpParams::CidGen { data, .. }) => data,
-            _ => return Err(OpenError::InvalidKeyParams.into()),
-        };
-
-        let vlad_cid = load_cid(vlad_cid_params)?;
-
-        // construct the signed vlad using the vlad pubkey and the first lock script cid
-        let vlad = vlad::Builder::default()
-            .with_signing_key(&vlad_mk)
-            .with_cid(&vlad_cid)
-            .try_build()?;
-
-        // 2. Call back to get the entry and pub keys and load the lock and unlock scripts
-
-        let entrykey_params = config.entrykey_params.clone();
-
-        // load the entry mk
-        let entry_mk = load_key(&entrykey_params)?;
-
-        // get the params for the pubkey
-        let pubkey_params = config.pubkey_params.clone();
-
-        // process the pubkey
-        let _ = load_key(&pubkey_params)?;
-
-        // the entry lock script
-        let lock_script = config.entry_lock_script.clone();
-
-        let unlock_script = config.entry_unlock_script.clone();
-
-        // 3. Construct the first entry, calling back to get the entry signed
     }
 
-    todo!()
+    // 1. Construct the VLAD from provided parameters
+    let VladConfig {
+        key: vlad_key_params,
+        cid: vlad_cid_params,
+    } = &config.vlad_params.clone();
+
+    // use load key to load the vlad_key and the op_params
+    let vlad_mk = load_key(vlad_key_params)?;
+
+    let vlad_cid = load_cid(vlad_cid_params)?;
+
+    // construct the signed vlad using the vlad pubkey and the first lock script cid
+    let vlad = vlad::Builder::default()
+        .with_signing_key(&vlad_mk)
+        .with_cid(&vlad_cid)
+        .try_build()?;
+
+    // 2. Call back to get the entry and pub keys and load the lock and unlock scripts
+
+    let entrykey_params = config.entrykey_params.clone();
+
+    // load the entry mk
+    let entry_mk = load_key(&entrykey_params)?;
+
+    // get the params for the pubkey
+    let pubkey_params = config.pubkey_params.clone();
+
+    // process the pubkey
+    let _ = load_key(&pubkey_params)?;
+
+    // the entry lock script
+    let lock_script = config.entry_lock_script.clone();
+
+    let unlock_script = config.entry_unlock_script.clone();
+
+    // 3. Construct the first entry, calling back to get the entry signed
+    // construct the first entry from all of the parts
+    let mut builder = entry::Builder::default()
+        .with_vlad(&vlad)
+        .add_lock(&lock_script)
+        .with_unlock(&unlock_script);
+    // add in all of the entry Ops
+    op_params
+        .borrow_mut()
+        .iter()
+        .try_for_each(|params| -> Result<(), Error> {
+            // construct the op
+            let op = match params {
+                OpParams::Noop { key } => op::Builder::new(OpId::Noop)
+                    .with_key_path(key)
+                    .try_build()?,
+                OpParams::Delete { key } => op::Builder::new(OpId::Delete)
+                    .with_key_path(key)
+                    .try_build()?,
+                OpParams::UseCid { key, cid } => {
+                    let v: Vec<u8> = cid.clone().into();
+                    op::Builder::new(OpId::Update)
+                        .with_key_path(key)
+                        .with_data_value(v)
+                        .try_build()?
+                }
+                OpParams::UseKey { key, mk } => {
+                    let v: Vec<u8> = mk.clone().into();
+                    op::Builder::new(OpId::Update)
+                        .with_key_path(key)
+                        .with_data_value(v)
+                        .try_build()?
+                }
+                OpParams::UseStr { key, s } => op::Builder::new(OpId::Update)
+                    .with_key_path(key)
+                    .with_string_value(s)
+                    .try_build()?,
+                OpParams::UseBin { key, data } => op::Builder::new(OpId::Update)
+                    .with_key_path(key)
+                    .with_data_value(data)
+                    .try_build()?,
+                _ => return Err(OpenError::InvalidOpParams.into()),
+            };
+            // add the op to the builder
+            builder = builder.clone().add_op(&op);
+            Ok(())
+        })?;
+
+    // finalize the entry building by signing it
+    let entry = builder.try_build(|e| {
+        // get the serialzied version of the entry with an empty "proof" field
+        let ev: Vec<u8> = e.clone().into();
+        // call the call back to have the caller sign the data
+        let ms = signer
+            .sign(&entry_mk, &ev)
+            .map_err(|e| PlogError::from(EntryError::SignFailed(e.to_string())))?;
+        // store the signature as proof
+        Ok(ms.into())
+    })?;
+
+    // 4. Construct the log
+
+    let log = provenance_log::log::Builder::new()
+        .with_vlad(&vlad)
+        .with_first_lock(&config.first_lock_script)
+        .append_entry(&entry)
+        .try_build()?;
+
+    Ok(log)
 }
