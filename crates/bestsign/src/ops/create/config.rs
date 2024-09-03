@@ -173,36 +173,74 @@ pub struct ConfigBuilder {
     pub first_lock_script: Option<Script>,
 
     /// The entry lock script
-    pub entry_lock_script: Option<Script>,
+    pub entry_lock_script: Script,
 
     /// The entry unlock script
-    pub entry_unlock_script: Option<Script>,
+    pub entry_unlock_script: Script,
 
     /// Additional ops for the first entry
     pub additional_ops: Vec<OpParams>,
 }
 
+/// NewType Wrapper around Lock Script
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockScript(pub Script);
+
+impl LockScript {
+    /// Moves the value out of the LockScript
+    pub fn into_inner(self) -> Script {
+        self.0
+    }
+}
+
+impl Deref for LockScript {
+    type Target = Script;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// NewType Wrapper around Unlock script
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnlockScript(pub Script);
+
+impl UnlockScript {
+    /// Moves the value out of the UnlockScript
+    pub fn into_inner(self) -> Script {
+        self.0
+    }
+}
+
+impl Deref for UnlockScript {
+    type Target = Script;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl ConfigBuilder {
     /// Create a new ConfigBuilder
-    pub fn new() -> Self {
+    pub fn new(lock: LockScript, unlock: UnlockScript) -> Self {
         Self {
             vlad_params: Some(default_vlad_params(None, None)),
             first_lock_script: Some(default_first_lock_script()),
-            entry_lock_script: None,
-            entry_unlock_script: None,
+            entry_lock_script: lock.into_inner(),
+            entry_unlock_script: unlock.into_inner(),
             additional_ops: vec![],
         }
     }
 
     /// Set the entry lock Script
     pub fn with_entry_lock_script(&mut self, script: Script) -> &mut Self {
-        self.entry_lock_script = Some(script);
+        self.entry_lock_script = script;
         self
     }
 
     /// Set the entry unlock script
     pub fn with_entry_unlock_script(&mut self, script: Script) -> &mut Self {
-        self.entry_unlock_script = Some(script);
+        self.entry_unlock_script = script;
         self
     }
 
@@ -232,22 +270,13 @@ impl ConfigBuilder {
 
     /// Build the Config
     pub fn try_build(self) -> Result<Config, Box<dyn std::error::Error>> {
-        // if any missing params, return a missing error
-        if self.entry_lock_script.is_none() {
-            return Err("Missing entry lock script".into());
-        }
-
-        if self.entry_unlock_script.is_none() {
-            return Err("Missing entry unlock script".into());
-        }
-
         Ok(Config {
             vlad_params: self.vlad_params.unwrap(),
             entrykey_params: default_entrykey_params(),
             pubkey_params: default_pubkey_params(),
             first_lock_script: self.first_lock_script.unwrap(),
-            entry_lock_script: self.entry_lock_script.unwrap(),
-            entry_unlock_script: self.entry_unlock_script.unwrap(),
+            entry_lock_script: self.entry_lock_script,
+            entry_unlock_script: self.entry_unlock_script,
             additional_ops: self.additional_ops,
         })
     }

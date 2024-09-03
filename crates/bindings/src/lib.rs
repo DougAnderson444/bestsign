@@ -29,14 +29,14 @@ impl WasmConfigBuilder {
     #[wasm_bindgen]
     pub fn set_entry_lock_script(&mut self, script: &str) {
         let script = Script::Code(Key::default(), script.to_string());
-        self.inner.entry_lock_script = Some(script);
+        self.inner.entry_lock_script = script;
     }
 
     // with_entry_unlock_script
     #[wasm_bindgen]
     pub fn set_entry_unlock_script(&mut self, script: &str) {
         let script = Script::Code(Key::default(), script.to_string());
-        self.inner.entry_unlock_script = Some(script);
+        self.inner.entry_unlock_script = script;
     }
 
     /// Set additional Key params

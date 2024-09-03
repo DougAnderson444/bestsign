@@ -244,3 +244,69 @@ pub fn create(
 
     Ok(log)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ops::update::OpParams;
+    use config::ConfigBuilder;
+    use mh::EncodedMultihash;
+    use multicodec::Codec;
+    use multikey::{mk, Multikey};
+    use provenance_log::entry::Entry;
+    use provenance_log::log::Log;
+    use provenance_log::Script;
+    use std::collections::HashMap;
+
+    #[derive(Debug, Clone, Default)]
+    struct TestKeyManager;
+
+    impl KeyManager for TestKeyManager {
+        fn generate(
+            &self,
+            _key: &Key,
+            codec: Codec,
+            _threshold: usize,
+            _limit: usize,
+        ) -> Result<Multikey, Error> {
+            let mut rng = rand::rngs::OsRng;
+            let mk = mk::Builder::new_from_random_bytes(codec, &mut rng)?.try_build()?;
+            Ok(mk)
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    struct TestSigner;
+
+    impl EntrySigner for TestSigner {
+        fn sign(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, Error> {
+            Ok(mk.sign_view()?.sign(data, false, None)?)
+        }
+    }
+
+    #[test]
+    fn test_create_using_defaults() -> Result<(), Box<dyn std::error::Error>> {
+        let lock_str = r#"
+                check_signature("/recovery", "/entry/") ||
+                check_signature("/pubkey", "/entry/") ||
+                check_preimage("/hash")
+            "#;
+
+        let lock_script = Script::Code(Key::default(), lock_str.to_string());
+
+        let unlock_str = r#"
+                push("/entry/");
+                push("/entry/proof");
+            "#;
+
+        let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
+
+        let config = ConfigBuilder::default().try_build()?;
+        let key_manager = TestKeyManager;
+        let signer = TestSigner;
+
+        let log = create(config, key_manager, signer).unwrap();
+
+        Ok(())
+    }
+}
