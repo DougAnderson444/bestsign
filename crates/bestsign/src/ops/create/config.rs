@@ -164,7 +164,7 @@ pub struct Config {
 }
 
 /// A Builder for the Config, takes minimal params and allows user to set the rest optionally
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigBuilder {
     /// Optional Vlad Params
     pub vlad_params: Option<VladConfig>,

@@ -301,7 +301,11 @@ mod tests {
 
         let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
 
-        let config = ConfigBuilder::default().try_build()?;
+        let config = ConfigBuilder::new(
+            config::LockScript(lock_script),
+            config::UnlockScript(unlock_script),
+        )
+        .try_build()?;
         let key_manager = TestKeyManager;
         let signer = TestSigner;
 

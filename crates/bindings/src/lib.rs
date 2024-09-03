@@ -1,14 +1,11 @@
 use bestsign::{
-    ops::create::{
-        config::{KeyParams, VladCid, VladConfig, VladKey},
-        Config,
-    },
+    ops::create::config::{KeyParams, LockScript, UnlockScript, VladCid, VladConfig, VladKey},
     Key, Script,
 };
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct WasmConfigBuilder {
     inner: bestsign::ops::create::config::ConfigBuilder,
 }
@@ -16,10 +13,15 @@ pub struct WasmConfigBuilder {
 #[wasm_bindgen]
 impl WasmConfigBuilder {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        // call the constructor of the inner type
+    pub fn new(lock: &str, unlock: &str) -> Self {
+        let lock = Script::Code(Key::default(), lock.to_string());
+        let unlock = Script::Code(Key::default(), unlock.to_string());
+
         Self {
-            inner: bestsign::ops::create::config::ConfigBuilder::default(),
+            inner: bestsign::ops::create::config::ConfigBuilder::new(
+                LockScript(lock),
+                UnlockScript(unlock),
+            ),
         }
     }
 
