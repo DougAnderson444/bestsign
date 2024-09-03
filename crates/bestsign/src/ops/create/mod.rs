@@ -35,7 +35,7 @@ pub trait EntrySigner {
 }
 
 pub fn create(
-    config: Config,
+    config: &Config,
     key_manager: impl KeyManager,
     signer: impl EntrySigner,
 ) -> Result<Log, crate::Error> {
@@ -122,14 +122,14 @@ pub fn create(
 
     // go through the additional ops and generate CIDs and keys and adding the resulting op params
     // to the vec of op params
-    for op in config.additional_ops {
+    for op in &config.additional_ops {
         let _ = match op {
             OpParams::KeyGen { .. } => {
-                let _ = load_key(&op)?;
+                let _ = load_key(op)?;
                 Ok::<(), crate::Error>(())
             }
             OpParams::CidGen { .. } => {
-                let _ = load_cid(&op)?;
+                let _ = load_cid(op)?;
                 Ok(())
             }
             _ => {
@@ -257,6 +257,8 @@ mod tests {
     use provenance_log::log::Log;
     use provenance_log::Script;
     use std::collections::HashMap;
+    use tracing_subscriber::{fmt, EnvFilter};
+    use vlad::EncodedVlad;
 
     #[derive(Debug, Clone, Default)]
     struct TestKeyManager;
@@ -284,8 +286,18 @@ mod tests {
         }
     }
 
+    fn init_logger() {
+        let subscriber = fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .finish();
+        if let Err(e) = tracing::subscriber::set_global_default(subscriber) {
+            tracing::warn!("failed to set subscriber: {}", e);
+        }
+    }
+
     #[test]
     fn test_create_using_defaults() -> Result<(), Box<dyn std::error::Error>> {
+        init_logger();
         let lock_str = r#"
                 check_signature("/recovery", "/entry/") ||
                 check_signature("/pubkey", "/entry/") ||
@@ -309,7 +321,19 @@ mod tests {
         let key_manager = TestKeyManager;
         let signer = TestSigner;
 
-        let log = create(config, key_manager, signer).unwrap();
+        let log = create(&config, key_manager, signer).unwrap();
+
+        // pretty print the log
+        tracing::info!("Vlad: {:#?}", log.vlad);
+
+        let encoded_vlad = EncodedVlad::from(log.vlad);
+
+        let s = encoded_vlad.to_string();
+
+        tracing::info!("Encoded Vlad: {}", s);
+
+        // log.first_lock shoul match
+        assert_eq!(log.first_lock, config.first_lock_script);
 
         Ok(())
     }
