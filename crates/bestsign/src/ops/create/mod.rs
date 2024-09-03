@@ -156,6 +156,9 @@ pub fn create(
         .with_cid(&vlad_cid)
         .try_build()?;
 
+    // drop the vlad_mk to Zeroize the key
+    drop(vlad_mk);
+
     // 2. Call back to get the entry and pub keys and load the lock and unlock scripts
 
     let entrykey_params = config.entrykey_params.clone();
