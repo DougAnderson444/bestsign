@@ -1,7 +1,10 @@
 [package]
-name = "bestsign"
+name = "bestsign-core"
 version = "0.1.0"
 edition = "2021"
+
+[features]
+wasm = ["getrandom/js"] # needed for CI testing on wasm32-unknown-unknown
 
 [dependencies]
 multibase = { version = "1.0", git = "https://github.com/cryptidtech/rust-multibase.git" }
@@ -21,3 +24,7 @@ tracing = "0.1.40"
 [dev-dependencies]
 rand = "0.8"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
+# Specifiy dev dependencies for wasm32 target 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"], optional = true }

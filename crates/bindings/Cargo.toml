@@ -7,6 +7,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-bestsign = { path = "../bestsign" }
+bestsign-core = { path = "../core" }
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
