@@ -1,6 +1,6 @@
 use bestsign::{
     ops::create::{
-        config::{KeyParams, VladCid, VladKey},
+        config::{KeyParams, VladCid, VladConfig, VladKey},
         Config,
     },
     Key, Script,
@@ -66,9 +66,12 @@ impl WasmConfigBuilder {
     /// Add (VladKey, VladCid)
     #[wasm_bindgen]
     pub fn set_vlad_params(&mut self, vlad_key: JsValue, vlad_cid: JsValue) -> Result<(), JsValue> {
-        let vlad_key: VladKey = serde_wasm_bindgen::from_value(vlad_key)?;
-        let vlad_cid: VladCid = serde_wasm_bindgen::from_value(vlad_cid)?;
-        self.inner.vlad_params = Some((vlad_key, vlad_cid));
+        let vlad_key_params: VladKey = serde_wasm_bindgen::from_value(vlad_key)?;
+        let vlad_cid_params: VladCid = serde_wasm_bindgen::from_value(vlad_cid)?;
+        self.inner.vlad_params = Some(VladConfig {
+            key: vlad_key_params,
+            cid: vlad_cid_params,
+        });
         Ok(())
     }
 

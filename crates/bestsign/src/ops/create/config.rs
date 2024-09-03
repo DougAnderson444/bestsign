@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ops::update::OpParams;
 
+//    let script = r#"check_signature("/entrykey")"#; <== Make this a constant
+const DEFAULT_FIRST_LOCK_SCRIPT: &str = r#"check_signature("/entrykey")"#;
+
 /// NewType Wrapper around VladKey OpParams
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VladKey(pub OpParams);
@@ -108,6 +111,7 @@ pub struct CidGen {
     pub target: Codec,
     pub hash: HashCodec,
     pub inline: bool,
+    pub data: Vec<u8>,
 }
 
 impl From<CidGen> for OpParams {
@@ -118,8 +122,16 @@ impl From<CidGen> for OpParams {
             target: params.target,
             hash: *params.hash,
             inline: params.inline,
+            data: params.data,
         }
     }
+}
+
+/// Vlad config struct, made up of VladKey and VladCid fields.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VladConfig {
+    pub key: VladKey,
+    pub cid: VladCid,
 }
 
 /// the configuration for opening a new provenance log.
@@ -127,7 +139,7 @@ impl From<CidGen> for OpParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     /// The vlad key and cid params
-    pub vlad_params: (VladKey, VladCid),
+    pub vlad_params: VladConfig,
 
     /// The entry key params
     #[serde(default = "default_entrykey_params")]
@@ -136,6 +148,10 @@ pub struct Config {
     /// The pubkey params
     #[serde(default = "default_pubkey_params")]
     pub pubkey_params: OpParams,
+
+    /// The first lock script
+    #[serde(default = "default_first_lock_script")]
+    pub first_lock_script: Script,
 
     /// The entry lock script
     pub entry_lock_script: Script,
@@ -151,7 +167,10 @@ pub struct Config {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConfigBuilder {
     /// Optional Vlad Params
-    pub vlad_params: Option<(VladKey, VladCid)>,
+    pub vlad_params: Option<VladConfig>,
+
+    /// The first lock script
+    pub first_lock_script: Option<Script>,
 
     /// The entry lock script
     pub entry_lock_script: Option<Script>,
@@ -168,6 +187,7 @@ impl ConfigBuilder {
     pub fn new() -> Self {
         Self {
             vlad_params: Some(default_vlad_params(None, None)),
+            first_lock_script: Some(default_first_lock_script()),
             entry_lock_script: None,
             entry_unlock_script: None,
             additional_ops: vec![],
@@ -205,7 +225,7 @@ impl ConfigBuilder {
     }
 
     /// Set the Vlad params
-    pub fn with_vlad_params(&mut self, vlad_params: (VladKey, VladCid)) -> &mut Self {
+    pub fn with_vlad_params(&mut self, vlad_params: VladConfig) -> &mut Self {
         self.vlad_params = Some(vlad_params);
         self
     }
@@ -225,6 +245,7 @@ impl ConfigBuilder {
             vlad_params: self.vlad_params.unwrap(),
             entrykey_params: default_entrykey_params(),
             pubkey_params: default_pubkey_params(),
+            first_lock_script: self.first_lock_script.unwrap(),
             entry_lock_script: self.entry_lock_script.unwrap(),
             entry_unlock_script: self.entry_unlock_script.unwrap(),
             additional_ops: self.additional_ops,
@@ -253,27 +274,35 @@ pub fn default_entrykey_params() -> OpParams {
     }
 }
 
+/// The default first entry lock script
+pub fn default_first_lock_script() -> Script {
+    let script = r#"check_signature("/entrykey")"#;
+    Script::Code(Key::default(), script.to_string())
+}
+
 /// Creates the VladParasm tuples from a given [Script] and Optional [Codec] (uses Ed25519 by default)
 pub fn default_vlad_params(
     key_codec: Option<KeyCodec>,
     hash_codec: Option<HashCodec>,
-) -> (VladKey, VladCid) {
+) -> VladConfig {
     let key_codec = KeyCodec(*key_codec.unwrap_or(KeyCodec(Codec::Ed25519Priv)));
     let hash_codec = HashCodec(*hash_codec.unwrap_or(HashCodec(Codec::Blake3)));
-    (
-        VladKey(OpParams::KeyGen {
+    VladConfig {
+        key: VladKey(OpParams::KeyGen {
             key: Key::try_from("/vlad/key").unwrap(),
             codec: *key_codec,
             threshold: 0,
             limit: 0,
             revoke: false,
         }),
-        VladCid(OpParams::CidGen {
+        cid: VladCid(OpParams::CidGen {
             key: Key::try_from("/vlad/").unwrap(),
             version: Codec::Cidv1,
             target: Codec::Identity,
             hash: *hash_codec,
             inline: true,
+            // Data is the bytes of DEFAULT_FIRST_LOCK_SCRIPT value
+            data: DEFAULT_FIRST_LOCK_SCRIPT.as_bytes().to_vec(),
         }),
-    )
+    }
 }
