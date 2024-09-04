@@ -336,7 +336,7 @@ mod tests {
         for rtn in verify_iter {
             if let Some(e) = rtn.err() {
                 tracing::error!("Error: {:#?}", e);
-                panic!("Error: {:#?}", e);
+                return Err(Box::new(e));
             }
         }
 
