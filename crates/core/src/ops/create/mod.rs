@@ -324,19 +324,33 @@ mod tests {
         let key_manager = TestKeyManager;
         let signer = TestSigner;
 
-        let log = create(&config, key_manager, signer).unwrap();
+        let plog = create(&config, key_manager, signer).unwrap();
+
+        // TODO: I don't like this API, shows too many internals.
+        let plog_clone = plog.clone();
+
+        let verify_iter = plog_clone.verify();
+
+        let mut verified = false;
+
+        for rtn in verify_iter {
+            if let Some(e) = rtn.err() {
+                tracing::error!("Error: {:#?}", e);
+                panic!("Error: {:#?}", e);
+            }
+        }
 
         // pretty print the log
-        tracing::info!("Vlad: {:#?}", log.vlad);
+        tracing::info!("Vlad: {:#?}", plog.vlad);
 
-        let encoded_vlad = EncodedVlad::from(log.vlad);
+        let encoded_vlad = EncodedVlad::from(plog.vlad);
 
         let s = encoded_vlad.to_string();
 
         tracing::info!("Encoded Vlad: {}", s);
 
         // log.first_lock shoul match
-        assert_eq!(log.first_lock, config.first_lock_script);
+        assert_eq!(plog.first_lock, config.first_lock_script);
 
         Ok(())
     }

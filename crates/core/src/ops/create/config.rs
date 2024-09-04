@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ops::update::OpParams;
 
-//    let script = r#"check_signature("/entrykey")"#; <== Make this a constant
-const DEFAULT_FIRST_LOCK_SCRIPT: &str = r#"check_signature("/entrykey")"#;
+const DEFAULT_FIRST_LOCK_SCRIPT: &str = r#"check_signature("/entrykey", "/entry/")"#;
 
 /// NewType Wrapper around VladKey OpParams
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -305,8 +304,7 @@ pub fn default_entrykey_params() -> OpParams {
 
 /// The default first entry lock script
 pub fn default_first_lock_script() -> Script {
-    let script = r#"check_signature("/entrykey")"#;
-    Script::Code(Key::default(), script.to_string())
+    Script::Code(Key::default(), DEFAULT_FIRST_LOCK_SCRIPT.to_string())
 }
 
 /// Creates the VladParasm tuples from a given [Script] and Optional [Codec] (uses Ed25519 by default)
