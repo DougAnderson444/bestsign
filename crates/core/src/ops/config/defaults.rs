@@ -1,0 +1,54 @@
+use super::*;
+
+pub(crate) fn default_pubkey_params() -> OpParams {
+    OpParams::KeyGen {
+        key: Key::try_from(DEFAULT_PUBKEY).unwrap(),
+        codec: Codec::Ed25519Priv,
+        threshold: 0,
+        limit: 0,
+        revoke: false,
+    }
+}
+
+/// The default entry key params
+pub(crate) fn default_entrykey_params() -> OpParams {
+    OpParams::KeyGen {
+        key: Key::try_from(DEFAULT_ENTRYKEY).unwrap(),
+        codec: Codec::Ed25519Priv,
+        threshold: 0,
+        limit: 0,
+        revoke: false,
+    }
+}
+
+/// The default first entry lock script
+pub(crate) fn default_first_lock_script() -> Script {
+    Script::Code(Key::default(), DEFAULT_FIRST_LOCK_SCRIPT.to_string())
+}
+
+/// Creates the VladParasm tuples from a given [Script] and Optional [Codec] (uses Ed25519 by default)
+pub(crate) fn default_vlad_params(
+    key_codec: Option<KeyCodec>,
+    hash_codec: Option<HashCodec>,
+) -> VladConfig {
+    let key_codec = KeyCodec(*key_codec.unwrap_or(KeyCodec(Codec::Ed25519Priv)));
+    let hash_codec = HashCodec(*hash_codec.unwrap_or(HashCodec(Codec::Blake3)));
+    VladConfig {
+        key: VladKey(OpParams::KeyGen {
+            key: Key::try_from(DEFAULT_VLAD_KEY).unwrap(),
+            codec: *key_codec,
+            threshold: 0,
+            limit: 0,
+            revoke: false,
+        }),
+        cid: VladCid(OpParams::CidGen {
+            key: Key::try_from(DEFAULT_VLAD_CID).unwrap(),
+            version: Codec::Cidv1,
+            target: Codec::Identity,
+            hash: *hash_codec,
+            inline: true,
+            // Data is the bytes of DEFAULT_FIRST_LOCK_SCRIPT value
+            data: DEFAULT_FIRST_LOCK_SCRIPT.as_bytes().to_vec(),
+        }),
+    }
+}

@@ -1,9 +1,8 @@
 /// Config for the open operation
-pub mod config;
+//pub mod config;
 use std::cell::RefCell;
 
-pub use config::Config;
-use config::VladConfig;
+pub use crate::ops::config::{self, Config, VladConfig};
 use multicid::{cid, vlad};
 use multihash::mh;
 use multisig::Multisig;
@@ -250,16 +249,12 @@ pub fn create(
 
 #[cfg(test)]
 mod tests {
+    use crate::ops::config::ConfigBuilder;
+
     use super::*;
-    use crate::ops::update::OpParams;
-    use config::ConfigBuilder;
-    use mh::EncodedMultihash;
     use multicodec::Codec;
     use multikey::{mk, Multikey};
-    use provenance_log::entry::Entry;
-    use provenance_log::log::Log;
     use provenance_log::Script;
-    use std::collections::HashMap;
     use tracing_subscriber::{fmt, EnvFilter};
     use vlad::EncodedVlad;
 
