@@ -2,7 +2,7 @@ mod utils;
 use utils::*;
 pub use utils::{LockScript, UnlockScript, VladCid, VladConfig};
 
-mod defaults;
+pub(crate) mod defaults;
 use defaults::*;
 
 use std::ops::Deref;
@@ -12,12 +12,6 @@ use provenance_log::{Key, Script};
 use serde::{Deserialize, Serialize};
 
 use crate::ops::update::OpParams;
-
-const DEFAULT_FIRST_LOCK_SCRIPT: &str = r#"check_signature("/entrykey", "/entry/")"#;
-const DEFAULT_PUBKEY: &str = "/pubkey";
-const DEFAULT_ENTRYKEY: &str = "/entrykey"; // could be ephemeral?
-const DEFAULT_VLAD_KEY: &str = "/vlad/key";
-const DEFAULT_VLAD_CID: &str = "/vlad/";
 
 /// the configuration for opening a new provenance log.
 /// It's Serializable and Deserializable.
