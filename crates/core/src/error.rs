@@ -21,9 +21,11 @@ pub enum Error {
     /// Provenance Log error
     #[error(transparent)]
     ProvenanceLog(#[from] provenance_log::Error),
+    /// Generic Error
+    #[error("Error: {0}")]
+    Generic(String),
 }
 
-/// Any Errors during the creation process
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum OpenError {
@@ -51,4 +53,7 @@ pub enum UpdateError {
     /// Invalid OpParams
     #[error("Invalid op params")]
     InvalidOpParams,
+    /// No last entry
+    #[error("No last entry")]
+    NoLastEntry,
 }

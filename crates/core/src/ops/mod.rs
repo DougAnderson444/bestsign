@@ -7,6 +7,9 @@ pub mod update;
 
 pub mod config;
 
+mod traits;
+use traits::{EntrySigner, KeyManager};
+
 /// Handy export for all public symbols
 pub mod prelude {
     pub use super::*;
