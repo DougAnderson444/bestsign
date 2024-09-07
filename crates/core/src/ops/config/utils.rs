@@ -1,3 +1,10 @@
+use std::ops::Deref;
+
+use multicodec::Codec;
+use provenance_log::{Key, Script};
+
+use crate::ops::update::OpParams;
+
 use super::*;
 
 /// NewType Wrapper around VladKey OpParams

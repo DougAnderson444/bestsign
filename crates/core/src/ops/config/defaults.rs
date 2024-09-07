@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: FSL-1.1
 // Copyright 2024 Doug Anderson
 //! Default values for the [OpParams] and [Script] structs
+use multicodec::Codec;
+use provenance_log::{Key, Script};
+
+use crate::ops::update::OpParams;
+
 use super::*;
 
 /// The default entry key, "/entrykey"

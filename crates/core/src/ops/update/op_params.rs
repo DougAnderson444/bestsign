@@ -5,7 +5,7 @@ use provenance_log::Key;
 use serde::{Deserialize, Serialize};
 
 /// The Op params for additional ops
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum OpParams {
     /// Noop params
     Noop {

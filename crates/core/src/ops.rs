@@ -1,6 +1,6 @@
 /// Create a new provenance log
-pub mod create;
-pub use create::create;
+pub mod open;
+pub use open::create;
 
 /// Update a provenance log
 pub mod update;
@@ -8,7 +8,7 @@ pub mod update;
 pub mod config;
 
 mod traits;
-use traits::{EntrySigner, KeyManager};
+pub use traits::{EntrySigner, KeyManager};
 
 /// Handy export for all public symbols
 pub mod prelude {

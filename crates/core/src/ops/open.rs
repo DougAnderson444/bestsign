@@ -1,33 +1,26 @@
+/// Config for the open operation
 pub mod config;
+use config::Config;
 use std::cell::RefCell;
 
-pub use config::Config;
+pub use crate::ops::config::VladConfig;
+use multibase::Base;
+use multicid::{cid, vlad};
+use multicodec::Codec;
+use multihash::{mh, EncodedMultihash};
 
-/// Utilities for building plog Update Ops
-pub mod op;
-
-/// params for generating Op
-pub mod op_params;
-use multicid::cid;
-use multihash::mh;
+use crate::{error::OpenError, utils, Error};
 use multikey::{Multikey, Views as _};
-pub use op_params::OpParams;
-use provenance_log::error::EntryError;
-use provenance_log::Entry;
-use provenance_log::{entry, error::Error as PlogError, Log};
+use provenance_log::{entry, error::EntryError, Error as PlogError, Log};
 
-use crate::{
-    error::OpenError,
-    ops::traits::{EntrySigner, KeyManager},
-    utils, Error,
-};
+use crate::ops::update::OpParams;
 
-pub fn update_plog(
-    plog: &mut Log,
+use super::traits::{EntrySigner, KeyManager};
+
+pub fn create(
     config: &Config,
-    mut key_manager: impl KeyManager,
-    signer: impl EntrySigner,
-) -> Result<Entry, crate::Error> {
+    key_manager: &mut (impl KeyManager + EntrySigner),
+) -> Result<Log, crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
 
@@ -61,7 +54,7 @@ pub fn update_plog(
 
             Ok(mk)
         } else {
-            Err(crate::error::OpenError::InvalidKeyParams.into())
+            Err(OpenError::InvalidKeyParams.into())
         }
     };
 
@@ -111,7 +104,7 @@ pub fn update_plog(
 
     // go through the additional ops and generate CIDs and keys and adding the resulting op params
     // to the vec of op params
-    for op in &config.entry_ops {
+    for op in &config.additional_ops {
         let _ = match op {
             OpParams::KeyGen { .. } => {
                 let _ = load_key(op)?;
@@ -128,18 +121,48 @@ pub fn update_plog(
         };
     }
 
-    // 1. validate the p.log and get the last entry and state
-    let (_, last_entry, _kvp) = plog
-        .verify()
-        .last()
-        .ok_or(crate::error::UpdateError::NoLastEntry)??;
+    // 1. Construct the VLAD from provided parameters
+    let VladConfig {
+        key: vlad_key_params,
+        cid: vlad_cid_params,
+    } = &config.vlad_params.clone();
+
+    let vlad_mk = load_key(vlad_key_params)?;
+    let vlad_cid = load_cid(vlad_cid_params)?;
+
+    // construct the signed vlad using the vlad pubkey and the first lock script cid
+    let vlad = vlad::Builder::default()
+        .with_signing_key(&vlad_mk)
+        .with_cid(&vlad_cid)
+        .try_build()?;
+
+    // drop the vlad_mk to Zeroize the key
+    drop(vlad_mk);
+
+    // 2. Call back to get the entry and pub keys and load the lock and unlock scripts
+
+    let entrykey_params = config.entrykey_params.clone();
+
+    // load the entry mk
+    let entry_mk = load_key(&entrykey_params)?;
+
+    // get the params for the pubkey
+    let pubkey_params = config.pubkey_params.clone();
+
+    // process the pubkey
+    let _ = load_key(&pubkey_params)?;
+
+    // the entry lock script
+    let lock_script = config.entry_lock_script.clone();
 
     let unlock_script = config.entry_unlock_script.clone();
-    let entry_mk = config.entry_signing_key.clone();
 
+    // 3. Construct the first entry, calling back to get the entry signed
     // construct the first entry from all of the parts
-    let mut builder = entry::Builder::from(&last_entry).with_unlock(&unlock_script);
-
+    let mut builder = entry::Builder::default()
+        .with_vlad(&vlad)
+        .add_lock(&lock_script)
+        .with_unlock(&unlock_script);
     // add in all of the entry Ops
     op_params
         .borrow_mut()
@@ -149,47 +172,73 @@ pub fn update_plog(
             builder = utils::apply_operations(params, &mut builder)?;
             Ok(())
         })?;
+
     // finalize the entry building by signing it
     let entry = builder.try_build(|e| {
         // get the serialzied version of the entry with an empty "proof" field
         let ev: Vec<u8> = e.clone().into();
         // call the call back to have the caller sign the data
-        let ms = signer
+        let ms = key_manager
             .sign(&entry_mk, &ev)
             .map_err(|e| PlogError::from(EntryError::SignFailed(e.to_string())))?;
         // store the signature as proof
         Ok(ms.into())
     })?;
 
-    // try to add the entry to the p.log
-    plog.try_append(&entry)?;
+    // securely destroy the entry_mk
+    drop(entry_mk);
 
-    Ok(entry)
+    // 4. Construct the log
+
+    let log = provenance_log::log::Builder::new()
+        .with_vlad(&vlad)
+        .with_first_lock(&config.first_lock_script)
+        .append_entry(&entry)
+        .try_build()?;
+
+    Ok(log)
+}
+
+// helper codec and encode fn
+fn encode(mk: &Multikey) -> Result<String, Error> {
+    let fp = mk.fingerprint_view()?.fingerprint(Codec::Sha3256)?;
+    let ef = EncodedMultihash::new(Base::Base32Z, fp);
+    Ok(ef.to_string())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::ops::{
-        self,
-        config::{defaults::DEFAULT_PUBKEY, ConfigBuilder},
-        create,
-    };
+    use crate::ops::open::config::ConfigBuilder;
 
     use super::*;
+    use crate::ops::config::defaults::DEFAULT_VLAD_KEY;
+    use crate::ops::config::defaults::{DEFAULT_FIRST_LOCK_SCRIPT, DEFAULT_PUBKEY};
+    use crate::ops::config::{LockScript, UnlockScript};
     use multicodec::Codec;
     use multikey::{mk, Multikey};
     use multisig::Multisig;
-    use provenance_log::{Key, Script};
+    use provenance_log::Script;
+    use provenance_log::{Key, Pairs};
     use tracing_subscriber::{fmt, EnvFilter};
+    use utils::try_extract;
 
     #[derive(Debug, Clone, Default)]
     struct TestKeyManager {
-        key: Option<Multikey>,
+        vlad: Option<Multikey>,
+        entry_key: Option<Multikey>,
     }
 
     impl TestKeyManager {
         fn new() -> Self {
-            Self { key: None }
+            Self::default()
+        }
+        /// Returns the vlad key
+        pub fn vlad(&self) -> Option<Multikey> {
+            self.vlad.clone()
+        }
+        /// Returns the entry key
+        pub fn entry_key(&self) -> Option<Multikey> {
+            self.entry_key.clone()
         }
     }
 
@@ -201,18 +250,27 @@ mod tests {
             _threshold: usize,
             _limit: usize,
         ) -> Result<Multikey, Error> {
-            tracing::info!(
-                "Key request for {:?} with codec {:#?}",
-                key.to_string(),
-                codec
-            );
+            tracing::info!("Key request for {:?}", key.to_string());
+
             let mut rng = rand::rngs::OsRng;
             let mk = mk::Builder::new_from_random_bytes(codec, &mut rng)?.try_build()?;
 
-            // if Key is "/pubkey" then set the key
-            if key.to_string() == DEFAULT_PUBKEY {
-                self.key = Some(mk.clone());
+            match key.to_string().as_str() {
+                DEFAULT_VLAD_KEY => {
+                    // save the public mulitkey for the vlad
+                    tracing::trace!(
+                        "[GENERATE] {}",
+                        encode(&mk).expect("Failed to encode generated MK")
+                    );
+
+                    self.vlad = Some(mk.conv_view()?.to_public_key()?);
+                }
+                DEFAULT_PUBKEY => {
+                    self.entry_key = Some(mk.clone());
+                }
+                _ => {}
             }
+
             Ok(mk)
         }
     }
@@ -235,10 +293,7 @@ mod tests {
     #[test]
     fn test_create_using_defaults() -> Result<(), Box<dyn std::error::Error>> {
         init_logger();
-
-        // 1. Create a new p.log with the default Config
-
-        let lock_str = ops::create::config::defaults::DEFAULT_FIRST_LOCK_SCRIPT;
+        let lock_str = DEFAULT_FIRST_LOCK_SCRIPT;
 
         let lock_script = Script::Code(Key::default(), lock_str.to_string());
 
@@ -249,15 +304,39 @@ mod tests {
 
         let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
 
-        let config = ConfigBuilder::new(
-            ops::create::config::LockScript(lock_script),
-            ops::create::config::UnlockScript(unlock_script),
-        )
-        .try_build()?;
+        let config =
+            ConfigBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).try_build()?;
 
         let mut key_manager = TestKeyManager::new();
 
         let plog = create(&config, &mut key_manager).unwrap();
+
+        // log.first_lock should match
+        assert_eq!(plog.first_lock, config.first_lock_script);
+
+        // the entry.vlad is the pubkey against the vlad.nonce as a signature, with the first lock script as the data signed
+        //
+        // 1. Get vlad_key from plog first entry
+        let verify_iter = &mut plog.verify();
+
+        // TODO: This API could be improved
+        let (_, _, kvp) = verify_iter.next().unwrap().unwrap();
+
+        let vlad_key_value = kvp.get(DEFAULT_VLAD_KEY).unwrap();
+
+        let vlad_key: Multikey = try_extract(&vlad_key_value).unwrap();
+
+        assert_eq!(&vlad_key, &key_manager.vlad().unwrap());
+        assert!(plog.vlad.verify(&vlad_key).is_ok());
+
+        // the log should also verify
+        for ret in verify_iter {
+            if let Some(e) = ret.err() {
+                tracing::error!("Error: {:#?}", e);
+                // fail test
+                panic!("Error in log verification");
+            }
+        }
 
         Ok(())
     }
