@@ -1,4 +1,26 @@
+// SPDX-License-Identifier: FSL-1.1
+// Copyright 2024 Doug Anderson
+//! Default values for the [OpParams] and [Script] structs
 use super::*;
+
+/// The default entry key, "/entrykey"
+const DEFAULT_ENTRYKEY: &str = "/entrykey";
+
+/// The default first lock script
+///
+/// ```rhai
+/// check_signature("/entrykey", "/entry/")
+/// ```
+pub const DEFAULT_FIRST_LOCK_SCRIPT: &str = r#"check_signature("/entrykey", "/entry/")"#;
+
+/// The default pubkey key, "/pubkey"
+pub const DEFAULT_PUBKEY: &str = "/pubkey";
+
+/// The default Vlad key, "/vlad/key"
+pub const DEFAULT_VLAD_KEY: &str = "/vlad/key";
+
+/// The default Vlad CID Key, "/vlad/"
+pub const DEFAULT_VLAD_CID: &str = "/vlad/";
 
 pub(crate) fn default_pubkey_params() -> OpParams {
     OpParams::KeyGen {
