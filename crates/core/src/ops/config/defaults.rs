@@ -9,7 +9,7 @@ use crate::ops::update::OpParams;
 use super::*;
 
 /// The default entry key, "/entrykey"
-const DEFAULT_ENTRYKEY: &str = "/entrykey";
+pub const DEFAULT_ENTRYKEY: &str = "/entrykey";
 
 /// The default first lock script
 ///
