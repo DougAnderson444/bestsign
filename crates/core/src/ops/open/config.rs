@@ -2,7 +2,7 @@ use crate::ops::config::defaults::*;
 use crate::ops::config::utils::*;
 use crate::ops::config::{LockScript, UnlockScript, VladConfig};
 
-use provenance_log::{Key, Script};
+use provenance_log::Script;
 use serde::{Deserialize, Serialize};
 
 use crate::ops::update::OpParams;
