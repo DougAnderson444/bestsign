@@ -211,8 +211,8 @@ mod tests {
     use crate::ops::open::config::ConfigBuilder;
 
     use super::*;
+    use crate::ops::config::defaults::DEFAULT_PUBKEY;
     use crate::ops::config::defaults::DEFAULT_VLAD_KEY;
-    use crate::ops::config::defaults::{DEFAULT_FIRST_LOCK_SCRIPT, DEFAULT_PUBKEY};
     use crate::ops::config::{LockScript, UnlockScript};
     use multicodec::Codec;
     use multikey::{mk, Multikey};
@@ -293,7 +293,11 @@ mod tests {
     #[test]
     fn test_create_using_defaults() -> Result<(), Box<dyn std::error::Error>> {
         init_logger();
-        let lock_str = DEFAULT_FIRST_LOCK_SCRIPT;
+        let lock_str = r#"
+            check_signature("/recoverykey", "/entry/") ||
+            check_signature("/pubkey", "/entry/") ||
+            check_preimage("/hash")
+        "#;
 
         let lock_script = Script::Code(Key::default(), lock_str.to_string());
 
@@ -314,20 +318,12 @@ mod tests {
         // log.first_lock should match
         assert_eq!(plog.first_lock, config.first_lock_script);
 
+        tracing::debug!("Entries: {:#?}", plog.entries);
+
         // the entry.vlad is the pubkey against the vlad.nonce as a signature, with the first lock script as the data signed
         //
         // 1. Get vlad_key from plog first entry
         let verify_iter = &mut plog.verify();
-
-        // TODO: This API could be improved
-        let (_, _, kvp) = verify_iter.next().unwrap().unwrap();
-
-        let vlad_key_value = kvp.get(DEFAULT_VLAD_KEY).unwrap();
-
-        let vlad_key: Multikey = try_extract(&vlad_key_value).unwrap();
-
-        assert_eq!(&vlad_key, &key_manager.vlad().unwrap());
-        assert!(plog.vlad.verify(&vlad_key).is_ok());
 
         // the log should also verify
         for ret in verify_iter {
@@ -337,6 +333,30 @@ mod tests {
                 panic!("Error in log verification");
             }
         }
+
+        // TODO: This API could be improved
+        let (_, _, kvp) = &mut plog.verify().next().unwrap().unwrap();
+
+        let vlad_key_value = kvp.get(DEFAULT_VLAD_KEY).unwrap();
+
+        let vlad_key: Multikey = try_extract(&vlad_key_value).unwrap();
+
+        assert_eq!(&vlad_key, &key_manager.vlad().unwrap());
+        assert!(plog.vlad.verify(&vlad_key).is_ok());
+
+        // /pubkey should match key_manager.entry_key public key
+        let entry_key = kvp.get(DEFAULT_PUBKEY).unwrap();
+
+        let entry_key: Multikey = try_extract(&entry_key).unwrap();
+
+        assert_eq!(
+            entry_key,
+            key_manager
+                .entry_key()
+                .unwrap()
+                .conv_view()?
+                .to_public_key()?
+        );
 
         Ok(())
     }
