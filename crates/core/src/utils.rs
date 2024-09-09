@@ -1,7 +1,7 @@
 use std::mem;
 
-use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
-use provenance_log::{entry, vm, Error as PlogError, Log, LogValue, OpId};
+use multiutil::{BaseEncoded, DetectedEncoder, EncodingInfo};
+use provenance_log::{entry, vm, OpId};
 
 use crate::{
     error::OpenError,
