@@ -25,8 +25,7 @@ use crate::{
 pub fn update_plog(
     plog: &mut Log,
     config: &Config,
-    mut key_manager: impl KeyManager,
-    signer: impl EntrySigner,
+    key_manager: &mut (impl KeyManager + EntrySigner),
 ) -> Result<Entry, crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
@@ -154,7 +153,7 @@ pub fn update_plog(
         // get the serialzied version of the entry with an empty "proof" field
         let ev: Vec<u8> = e.clone().into();
         // call the call back to have the caller sign the data
-        let ms = signer
+        let ms = key_manager
             .sign(&entry_mk, &ev)
             .map_err(|e| PlogError::from(EntryError::SignFailed(e.to_string())))?;
         // store the signature as proof
@@ -171,7 +170,7 @@ pub fn update_plog(
 mod tests {
     use crate::ops::{
         config::{
-            defaults::{DEFAULT_FIRST_LOCK_SCRIPT, DEFAULT_PUBKEY},
+            defaults::{DEFAULT_ENTRYKEY, DEFAULT_PUBKEY},
             LockScript, UnlockScript,
         },
         create,
@@ -182,7 +181,7 @@ mod tests {
     use multicodec::Codec;
     use multikey::{mk, Multikey};
     use multisig::Multisig;
-    use provenance_log::{Key, Script};
+    use provenance_log::{Key, Pairs, Script};
     use tracing_subscriber::{fmt, EnvFilter};
 
     #[derive(Debug, Clone, Default)]
@@ -240,10 +239,14 @@ mod tests {
         init_logger();
 
         // 1. Create a new p.log with the default Config
+        let lock = r#"
+            check_signature("/recoverykey", "/entry/") ||
+            check_signature("/pubkey", "/entry/") ||
+            check_preimage("/hash")
+        "#
+        .to_string();
 
-        let lock_str = DEFAULT_FIRST_LOCK_SCRIPT;
-
-        let lock_script = Script::Code(Key::default(), lock_str.to_string());
+        let lock_script = Script::Code(Key::default(), lock);
 
         let unlock_str = r#"
                 push("/entry/");
@@ -252,12 +255,53 @@ mod tests {
 
         let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
 
-        let config =
-            ConfigBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).try_build()?;
+        let config = ConfigBuilder::new(
+            LockScript(lock_script.clone()),
+            UnlockScript(unlock_script.clone()),
+        )
+        .try_build()?;
 
         let mut key_manager = TestKeyManager::new();
 
-        let plog = create(&config, &mut key_manager).unwrap();
+        let mut plog = create(&config, &mut key_manager).unwrap();
+
+        // 2. Update the p.log with a new entry
+        // - add a lock Script
+        // - remove the entrykey lock Script
+        // - add an op
+        let update_cfg = Config::new(
+            unlock_script.clone(),
+            key_manager.key.clone().unwrap_or_default(),
+        )
+        .add_op(OpParams::Delete {
+            key: Key::try_from(DEFAULT_ENTRYKEY).unwrap(),
+        })
+        // Entry lock scripts define conditions which must be met by the next entry in the plog for it to be valid.
+        .add_lock(Key::try_from("/delegated/")?, lock_script);
+
+        // tak config and use update method with TestKeyManager to update the log
+        update_plog(&mut plog, &update_cfg, &mut key_manager)?;
+
+        // There should be no DEFAULT_ENTRYKEY kvp
+        let verify_iter = &mut plog.verify();
+
+        let mut last = None;
+
+        // the log should also verify
+        for ret in verify_iter {
+            if let Some(e) = ret.clone().err() {
+                tracing::error!("Error: {:#?}", e);
+                // fail test
+                panic!("Error in log verification");
+            } else {
+                last = Some(ret.ok().unwrap());
+            }
+        }
+
+        let kvp = last.ok_or("No last entry")?.2;
+        let op = kvp.get(DEFAULT_ENTRYKEY);
+
+        assert!(op.is_none());
 
         Ok(())
     }
