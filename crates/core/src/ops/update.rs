@@ -298,7 +298,7 @@ mod tests {
             }
         }
 
-        let kvp = last.ok_or("No last entry")?.2;
+        let (count, entry, kvp) = last.ok_or("No last entry")?;
         let op = kvp.get(DEFAULT_ENTRYKEY);
 
         assert!(op.is_none());
