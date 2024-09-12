@@ -1,5 +1,10 @@
-use bestsign::{
-    ops::create::config::{KeyParams, LockScript, UnlockScript, VladCid, VladConfig, VladKey},
+use bestsign_core::{
+    ops::{
+        config::{
+            CidGen, KeyParams, LockScript, UnlockScript, UseStr, VladCid, VladConfig, VladKey,
+        },
+        open::config::ConfigBuilder,
+    },
     Key, Script,
 };
 use wasm_bindgen::prelude::*;
@@ -7,7 +12,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 #[derive(Debug)]
 pub struct WasmConfigBuilder {
-    inner: bestsign::ops::create::config::ConfigBuilder,
+    inner: ConfigBuilder,
 }
 
 #[wasm_bindgen]
@@ -18,10 +23,7 @@ impl WasmConfigBuilder {
         let unlock = Script::Code(Key::default(), unlock.to_string());
 
         Self {
-            inner: bestsign::ops::create::config::ConfigBuilder::new(
-                LockScript(lock),
-                UnlockScript(unlock),
-            ),
+            inner: ConfigBuilder::new(LockScript(lock), UnlockScript(unlock)),
         }
     }
 
@@ -52,7 +54,7 @@ impl WasmConfigBuilder {
     // with_use_str
     #[wasm_bindgen]
     pub fn add_string(&mut self, op: JsValue) -> Result<(), JsValue> {
-        let val: bestsign::ops::create::config::UseStr = serde_wasm_bindgen::from_value(op)?;
+        let val: UseStr = serde_wasm_bindgen::from_value(op)?;
         self.inner.with_use_str(val);
         Ok(())
     }
@@ -60,7 +62,7 @@ impl WasmConfigBuilder {
     /// Add a Cid to the log
     #[wasm_bindgen]
     pub fn add_cid(&mut self, op: JsValue) -> Result<(), JsValue> {
-        let val: bestsign::ops::create::config::CidGen = serde_wasm_bindgen::from_value(op)?;
+        let val: CidGen = serde_wasm_bindgen::from_value(op)?;
         self.inner.with_cid_gen(val);
         Ok(())
     }
