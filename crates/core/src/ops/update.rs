@@ -1,7 +1,7 @@
 pub mod config;
 use std::cell::RefCell;
 
-pub use config::Config;
+pub use config::UpdateConfig;
 
 /// Utilities for building plog Update Ops
 pub mod op;
@@ -24,7 +24,7 @@ use crate::{
 
 pub fn update_plog(
     plog: &mut Log,
-    config: &Config,
+    config: &UpdateConfig,
     key_manager: &mut (impl KeyManager + EntrySigner),
 ) -> Result<Entry, crate::Error> {
     // 0. Set up the list of ops we're going to add
@@ -269,7 +269,7 @@ mod tests {
         // - add a lock Script
         // - remove the entrykey lock Script
         // - add an op
-        let update_cfg = Config::new(
+        let update_cfg = UpdateConfig::new(
             unlock_script.clone(),
             key_manager.key.clone().unwrap_or_default(),
         )

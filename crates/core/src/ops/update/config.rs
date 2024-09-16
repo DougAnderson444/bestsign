@@ -5,7 +5,7 @@ use provenance_log::Script;
 
 /// the configuration for opening a new provenance log
 #[derive(Clone, Debug, Default)]
-pub struct Config {
+pub struct UpdateConfig {
     /// clear all lock scripts?
     pub clear_lock_scripts: bool,
 
@@ -25,7 +25,7 @@ pub struct Config {
     pub entry_ops: Vec<OpParams>,
 }
 
-impl Config {
+impl UpdateConfig {
     /// Create a new Config with the given unlock script and entry signing key
     pub fn new(entry_unlock_script: Script, entry_signing_key: Multikey) -> Self {
         Self {
@@ -77,7 +77,7 @@ mod tests {
             s: "test".to_string(),
         };
 
-        let config = Config::new(script.clone(), mk.clone())
+        let config = UpdateConfig::new(script.clone(), mk.clone())
             .add_op(op.clone())
             .add_lock("test".to_string(), script.clone())
             .remove_lock("test".to_string());
