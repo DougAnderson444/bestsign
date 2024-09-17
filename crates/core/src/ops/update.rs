@@ -139,6 +139,10 @@ pub fn update_plog(
     // construct the first entry from all of the parts
     let mut builder = entry::Builder::from(&last_entry).with_unlock(&unlock_script);
 
+    for (_key_path, lock) in &config.add_entry_lock_scripts {
+        builder = builder.add_lock(lock);
+    }
+
     // add in all of the entry Ops
     op_params
         .borrow_mut()
@@ -186,6 +190,7 @@ mod tests {
 
     #[derive(Debug, Clone, Default)]
     struct TestKeyManager {
+        /// The "/pubkey" key
         key: Option<Multikey>,
     }
 
