@@ -6,7 +6,7 @@ use std::cell::RefCell;
 pub use crate::ops::config::VladConfig;
 use multibase::Base;
 use multicid::{cid, vlad};
-use multicodec::Codec;
+pub use multicodec::Codec;
 use multihash::{mh, EncodedMultihash};
 
 use crate::{error::OpenError, utils, Error};
