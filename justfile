@@ -6,3 +6,7 @@ test-core-wasm32-build:
   RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo build --target wasm32-unknown-unknown --manifest-path=crates/core/Cargo.toml --features wasm
   # wasi 
   RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo build --target wasm32-wasi --manifest-path=crates/core/Cargo.toml
+
+# Runs the Svelte Demo
+run-demo:
+  cd demo && npm run dev -- --open
