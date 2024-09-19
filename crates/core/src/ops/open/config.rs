@@ -53,6 +53,9 @@ pub struct ConfigBuilder {
 
     /// Additional ops for the first entry
     pub additional_ops: Vec<OpParams>,
+
+    /// The pubkey params
+    pub pubkey_params: OpParams,
 }
 
 impl ConfigBuilder {
@@ -64,7 +67,14 @@ impl ConfigBuilder {
             entry_lock_script: lock.into_inner(),
             entry_unlock_script: unlock.into_inner(),
             additional_ops: vec![],
+            pubkey_params: default_pubkey_params(),
         }
+    }
+
+    /// Set the public key params
+    pub fn with_pubkey_params(&mut self, params: OpParams) -> &mut Self {
+        self.pubkey_params = params;
+        self
     }
 
     /// Set the entry lock Script
@@ -108,7 +118,7 @@ impl ConfigBuilder {
         Ok(Config {
             vlad_params: self.vlad_params.unwrap(),
             entrykey_params: default_entrykey_params(),
-            pubkey_params: default_pubkey_params(),
+            pubkey_params: self.pubkey_params,
             first_lock_script: self.first_lock_script.unwrap(),
             entry_lock_script: self.entry_lock_script,
             entry_unlock_script: self.entry_unlock_script,
