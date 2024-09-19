@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 bestsign-core = { path = "../core" }
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
+seed-keeper-core = { git = "https://github.com/DougAnderson444/seed-keeper.git" }

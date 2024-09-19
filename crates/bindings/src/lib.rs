@@ -1,18 +1,44 @@
+use std::fmt::Display;
+
 use bestsign_core::{
     ops::{
         config::{
             CidGen, KeyParams, LockScript, UnlockScript, UseStr, VladCid, VladConfig, VladKey,
         },
-        open::config::ConfigBuilder,
+        create,
+        open::config::{Config, ConfigBuilder},
+        EntrySigner, KeyManager,
     },
-    Key, Script,
+    Codec, Key, Multikey, Multisig, Script,
 };
 use wasm_bindgen::prelude::*;
 
+pub struct Manager;
+
+impl KeyManager for &Manager {
+    fn get_mk(
+        &mut self,
+        key: &Key,
+        codec: Codec,
+        threshold: usize,
+        limit: usize,
+    ) -> Result<Multikey, bestsign_core::Error> {
+        unimplemented!()
+    }
+}
+
+impl EntrySigner for &Manager {
+    fn sign(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
+        unimplemented!()
+    }
+}
+
 #[wasm_bindgen]
-#[derive(Debug)]
 pub struct WasmConfigBuilder {
     inner: ConfigBuilder,
+    config: Option<Config>,
+    // key_manage must impl both KeyManager and EntrySigner
+    key_manager: Option<Manager>,
 }
 
 #[wasm_bindgen]
@@ -24,6 +50,8 @@ impl WasmConfigBuilder {
 
         Self {
             inner: ConfigBuilder::new(LockScript(lock), UnlockScript(unlock)),
+            config: None,
+            key_manager: None,
         }
     }
 
@@ -81,14 +109,22 @@ impl WasmConfigBuilder {
 
     /// Build the Config
     #[wasm_bindgen]
-    pub fn try_build(self) -> Result<JsValue, JsValue> {
+    pub fn try_build(mut self) -> Result<(), JsValue> {
         let config = self
             .inner
             .try_build()
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        let config =
-            serde_wasm_bindgen::to_value(&config).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        self.config = Some(config.clone());
 
-        Ok(config)
+        Ok(())
+    }
+
+    /// Creates a new Plog using self.config
+    #[wasm_bindgen]
+    pub fn create(&self) -> Result<(), JsValue> {
+        let config = self.config.as_ref().ok_or("Config not built")?;
+        let mut key_manager = self.key_manager.as_ref().ok_or("KeyManager not set")?;
+        let log = create(config, &mut key_manager).map_err(|e| JsValue::from_str(&e.to_string()));
+        Ok(())
     }
 }
