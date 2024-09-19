@@ -198,7 +198,9 @@ name = "bindings"
 version = "0.1.0"
 dependencies = [
  "bestsign-core",
+ "js-sys",
  "seed-keeper-core",
+ "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
 ]
