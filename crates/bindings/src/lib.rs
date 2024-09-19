@@ -1,21 +1,60 @@
-use std::fmt::Display;
-
 use bestsign_core::{
     ops::{
         config::{
             CidGen, KeyParams, LockScript, UnlockScript, UseStr, VladCid, VladConfig, VladKey,
         },
         create,
-        open::config::{Config, ConfigBuilder},
+        open::config::{Config, NewLogBuilder},
         EntrySigner, KeyManager,
     },
     Codec, Key, Multikey, Multisig, Script,
 };
+//use js_sys::Function;
+use js_sys::Function;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
-pub struct Manager;
+/// The arguments for the get_key callback
+#[derive(Serialize, Deserialize)]
+pub struct KeyArgs {
+    key: String,
+    codec: String,
+    threshold: usize,
+    limit: usize,
+}
 
-impl KeyManager for &Manager {
+/// The arguments for the sign callback
+#[derive(Serialize, Deserialize)]
+pub struct SignArgs {
+    mk: Multikey,
+    data: Vec<u8>,
+}
+
+// A function to create and return a Box<dyn KeyManager>
+#[wasm_bindgen]
+pub fn create_key_manager(get_key: &Function, sign: &Function) {
+    MyKeyHandler::new(get_key, sign);
+}
+
+/// Struct that will implement KeyManager
+#[wasm_bindgen]
+pub struct MyKeyHandler {
+    get_key_callback: Function,
+    sign_callback: Function,
+}
+
+#[wasm_bindgen]
+impl MyKeyHandler {
+    #[wasm_bindgen(constructor)]
+    pub fn new(get_key: &Function, sign: &Function) -> Self {
+        MyKeyHandler {
+            get_key_callback: get_key.clone(),
+            sign_callback: sign.clone(),
+        }
+    }
+}
+
+impl KeyManager for &MyKeyHandler {
     fn get_mk(
         &mut self,
         key: &Key,
@@ -23,35 +62,80 @@ impl KeyManager for &Manager {
         threshold: usize,
         limit: usize,
     ) -> Result<Multikey, bestsign_core::Error> {
-        unimplemented!()
+        // use the callback to get the key
+        let this = JsValue::NULL;
+        let args = KeyArgs {
+            key: key.to_string(),
+            codec: codec.to_string(),
+            threshold,
+            limit,
+        };
+
+        let args_js = serde_wasm_bindgen::to_value(&args).map_err(|e| {
+            bestsign_core::Error::Generic(format!("Error converting args to JsValue: {e}"))
+        })?;
+
+        // use apply to call the callback with the args
+        let result = self.get_key_callback.call1(&this, &args_js).map_err(|e| {
+            bestsign_core::Error::Generic(format!(
+                "Error calling get_key: {}",
+                e.as_string().unwrap()
+            ))
+        })?;
+
+        // convert the result to a Multikey
+        let mk: Multikey = serde_wasm_bindgen::from_value(result).map_err(|e| {
+            bestsign_core::Error::Generic(format!("Error converting result to Multikey: {}", e))
+        })?;
+
+        Ok(mk)
     }
 }
 
-impl EntrySigner for &Manager {
+impl EntrySigner for &MyKeyHandler {
     fn sign(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
-        unimplemented!()
+        // use the callback to sign the data
+        let this = JsValue::NULL;
+
+        let args = SignArgs {
+            mk: mk.clone(),
+            data: data.to_vec(),
+        };
+
+        let args_js = serde_wasm_bindgen::to_value(&args).map_err(|e| {
+            bestsign_core::Error::Generic(format!("Error converting args to JsValue: {e}"))
+        })?;
+
+        let result = self.sign_callback.call1(&this, &args_js).map_err(|e| {
+            bestsign_core::Error::Generic(format!("Error calling sign: {}", e.as_string().unwrap()))
+        })?;
+
+        let sig: Multisig = serde_wasm_bindgen::from_value(result).map_err(|e| {
+            bestsign_core::Error::Generic(format!("Error converting result to Multisig: {}", e))
+        })?;
+
+        Ok(sig)
     }
 }
 
 #[wasm_bindgen]
 pub struct WasmConfigBuilder {
-    inner: ConfigBuilder,
-    config: Option<Config>,
+    /// The inner ConfigBuilder
+    inner: NewLogBuilder,
     // key_manage must impl both KeyManager and EntrySigner
-    key_manager: Option<Manager>,
+    key_manager: MyKeyHandler,
 }
 
 #[wasm_bindgen]
 impl WasmConfigBuilder {
     #[wasm_bindgen(constructor)]
-    pub fn new(lock: &str, unlock: &str) -> Self {
+    pub fn new(lock: &str, unlock: &str, get_key: &Function, sign: &Function) -> Self {
         let lock = Script::Code(Key::default(), lock.to_string());
         let unlock = Script::Code(Key::default(), unlock.to_string());
 
         Self {
-            inner: ConfigBuilder::new(LockScript(lock), UnlockScript(unlock)),
-            config: None,
-            key_manager: None,
+            inner: NewLogBuilder::new(LockScript(lock), UnlockScript(unlock)),
+            key_manager: MyKeyHandler::new(get_key, sign),
         }
     }
 
@@ -100,31 +184,23 @@ impl WasmConfigBuilder {
     pub fn set_vlad_params(&mut self, vlad_key: JsValue, vlad_cid: JsValue) -> Result<(), JsValue> {
         let vlad_key_params: VladKey = serde_wasm_bindgen::from_value(vlad_key)?;
         let vlad_cid_params: VladCid = serde_wasm_bindgen::from_value(vlad_cid)?;
-        self.inner.vlad_params = Some(VladConfig {
+        self.inner.vlad_params = VladConfig {
             key: vlad_key_params,
             cid: vlad_cid_params,
-        });
-        Ok(())
-    }
-
-    /// Build the Config
-    #[wasm_bindgen]
-    pub fn try_build(mut self) -> Result<(), JsValue> {
-        let config = self
-            .inner
-            .try_build()
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        self.config = Some(config.clone());
-
+        };
         Ok(())
     }
 
     /// Creates a new Plog using self.config
     #[wasm_bindgen]
     pub fn create(&self) -> Result<(), JsValue> {
-        let config = self.config.as_ref().ok_or("Config not built")?;
-        let mut key_manager = self.key_manager.as_ref().ok_or("KeyManager not set")?;
-        let log = create(config, &mut key_manager).map_err(|e| JsValue::from_str(&e.to_string()));
+        let config = self
+            .inner
+            .clone()
+            .try_build()
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let mut key_manager = &self.key_manager;
+        let log = create(&config, &mut key_manager).map_err(|e| JsValue::from_str(&e.to_string()));
         Ok(())
     }
 }
