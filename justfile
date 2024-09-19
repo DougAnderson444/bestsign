@@ -1,5 +1,5 @@
 test-comrade-core:
- RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo test --manifest-path=crates/bestsign-core/Cargo.toml
+ RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo test --manifest-path=crates/core/Cargo.toml
 
 # Uses wasm feature for wasm32-unknown-unknown target, but not for wasm32-wasi target
 test-core-wasm32-build:
