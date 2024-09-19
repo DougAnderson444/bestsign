@@ -30,12 +30,6 @@ pub struct SignArgs {
     data: Vec<u8>,
 }
 
-// A function to create and return a Box<dyn KeyManager>
-#[wasm_bindgen]
-pub fn create_key_manager(get_key: &Function, sign: &Function) {
-    MyKeyHandler::new(get_key, sign);
-}
-
 /// Struct that will implement KeyManager
 #[wasm_bindgen]
 pub struct MyKeyHandler {
