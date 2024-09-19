@@ -54,12 +54,9 @@ pub(crate) fn default_first_lock_script() -> Script {
 }
 
 /// Creates the VladParasm tuples from a given [Script] and Optional [Codec] (uses Ed25519 by default)
-pub(crate) fn default_vlad_params(
-    key_codec: Option<KeyCodec>,
-    hash_codec: Option<HashCodec>,
-) -> VladConfig {
-    let key_codec = KeyCodec(*key_codec.unwrap_or(KeyCodec(Codec::Ed25519Priv)));
-    let hash_codec = HashCodec(*hash_codec.unwrap_or(HashCodec(Codec::Blake3)));
+pub(crate) fn default_vlad_params() -> VladConfig {
+    let key_codec = KeyCodec(Codec::Ed25519Priv);
+    let hash_codec = HashCodec(Codec::Blake3);
     VladConfig {
         key: VladKey(OpParams::KeyGen {
             key: Key::try_from(DEFAULT_VLAD_KEY).unwrap(),

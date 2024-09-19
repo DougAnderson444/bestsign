@@ -79,8 +79,8 @@ mod tests {
 
         let config = UpdateConfig::new(script.clone(), mk.clone())
             .add_op(op.clone())
-            .add_lock("test".to_string(), script.clone())
-            .remove_lock("test".to_string());
+            .add_lock("test", script.clone())
+            .remove_lock("test");
 
         assert_eq!(config.entry_unlock_script, script);
         assert_eq!(config.entry_signing_key, mk);

@@ -4,10 +4,9 @@ use config::Config;
 use std::cell::RefCell;
 
 pub use crate::ops::config::VladConfig;
-use multibase::Base;
 use multicid::{cid, vlad};
 pub use multicodec::Codec;
-use multihash::{mh, EncodedMultihash};
+use multihash::mh;
 
 use crate::{error::OpenError, utils, Error};
 use multikey::{Multikey, Views as _};
@@ -199,28 +198,30 @@ pub fn create(
     Ok(log)
 }
 
-// helper codec and encode fn
-fn encode(mk: &Multikey) -> Result<String, Error> {
-    let fp = mk.fingerprint_view()?.fingerprint(Codec::Sha3256)?;
-    let ef = EncodedMultihash::new(Base::Base32Z, fp);
-    Ok(ef.to_string())
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::ops::open::config::ConfigBuilder;
+    use crate::ops::open::config::NewLogBuilder;
 
     use super::*;
     use crate::ops::config::defaults::DEFAULT_PUBKEY;
     use crate::ops::config::defaults::DEFAULT_VLAD_KEY;
     use crate::ops::config::{LockScript, UnlockScript};
+    use multibase::Base;
     use multicodec::Codec;
+    use multihash::EncodedMultihash;
     use multikey::{mk, Multikey};
     use multisig::Multisig;
     use provenance_log::Script;
     use provenance_log::{Key, Pairs};
     use tracing_subscriber::{fmt, EnvFilter};
     use utils::try_extract;
+
+    // helper codec and encode fn
+    fn encode(mk: &Multikey) -> Result<String, Error> {
+        let fp = mk.fingerprint_view()?.fingerprint(Codec::Sha3256)?;
+        let ef = EncodedMultihash::new(Base::Base32Z, fp);
+        Ok(ef.to_string())
+    }
 
     #[derive(Debug, Clone, Default)]
     struct TestKeyManager {
@@ -309,7 +310,7 @@ mod tests {
         let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
 
         let config =
-            ConfigBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).try_build()?;
+            NewLogBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).try_build()?;
 
         let mut key_manager = TestKeyManager::new();
 

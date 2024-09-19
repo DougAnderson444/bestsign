@@ -178,7 +178,7 @@ mod tests {
             LockScript, UnlockScript,
         },
         create,
-        open::config::ConfigBuilder,
+        open::config::NewLogBuilder,
     };
 
     use super::*;
@@ -260,7 +260,7 @@ mod tests {
 
         let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
 
-        let config = ConfigBuilder::new(
+        let config = NewLogBuilder::new(
             LockScript(lock_script.clone()),
             UnlockScript(unlock_script.clone()),
         )
@@ -303,7 +303,7 @@ mod tests {
             }
         }
 
-        let (count, entry, kvp) = last.ok_or("No last entry")?;
+        let (_count, _entry, kvp) = last.ok_or("No last entry")?;
         let op = kvp.get(DEFAULT_ENTRYKEY);
 
         assert!(op.is_none());
