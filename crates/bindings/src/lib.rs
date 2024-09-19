@@ -193,14 +193,19 @@ impl WasmConfigBuilder {
 
     /// Creates a new Plog using self.config
     #[wasm_bindgen]
-    pub fn create(&self) -> Result<(), JsValue> {
+    pub fn create(&self) -> Result<JsValue, JsValue> {
         let config = self
             .inner
             .clone()
             .try_build()
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         let mut key_manager = &self.key_manager;
-        let log = create(&config, &mut key_manager).map_err(|e| JsValue::from_str(&e.to_string()));
-        Ok(())
+        let log =
+            create(&config, &mut key_manager).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        // serialize the log to a JsValue
+        let log_js =
+            serde_wasm_bindgen::to_value(&log).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        Ok(log_js)
     }
 }
