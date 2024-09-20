@@ -10,7 +10,17 @@ use bestsign_core::ops::config::defaults::{DEFAULT_ENTRYKEY, DEFAULT_VLAD_KEY};
 use bestsign_core::{Codec, Key, Multikey};
 use multikey::{mk, EncodedMultikey, Views as _};
 use seed_keeper_core::credentials::{Credentials, Wallet};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+
+/// The arguments for the get_key callback
+#[derive(Serialize, Deserialize)]
+pub struct KeyArgs {
+    key: String,
+    codec: String,
+    threshold: usize,
+    limit: usize,
+}
 
 /// Holds the wallet and keys
 #[wasm_bindgen]
@@ -30,6 +40,13 @@ where
     JsValue::from_str(&e.to_string())
 }
 
+#[wasm_bindgen(start)]
+pub fn start() {
+    console_error_panic_hook::set_once();
+    tracing_wasm::set_as_global_default();
+    tracing::info!("Initialized logging");
+}
+
 #[wasm_bindgen]
 impl WasmWallet {
     #[wasm_bindgen(constructor)]
@@ -41,17 +58,19 @@ impl WasmWallet {
         Ok(WasmWallet { wallet, keys })
     }
 
-    pub fn get_mk(
-        &mut self,
-        key: &str,
-        codec: &str,
-        threshold: usize,
-        limit: usize,
-    ) -> Result<JsValue, JsValue> {
-        let codec = Codec::try_from(codec).map_err(into_js_val)?;
+    pub fn get_mk(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
+        // deserialize and destructure the args
+        let KeyArgs {
+            key,
+            codec,
+            threshold,
+            limit,
+        } = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
+
+        let codec = Codec::try_from(codec.as_str()).map_err(into_js_val)?;
         // if key is DEFAULT_ENTRYKEY or DEFAULT_VLAD_KEY, generate random key.
         // Otherwise, use the key from seed.
-        let mk = match key {
+        let mk = match key.as_str() {
             DEFAULT_ENTRYKEY | DEFAULT_VLAD_KEY => {
                 let mut rng = rand::thread_rng();
                 let mk = mk::Builder::new_from_random_bytes(codec, &mut rng)
@@ -89,8 +108,8 @@ impl WasmWallet {
         Ok(JsValue::from_str(&epk.to_string()))
     }
 
-    /// Sign the data with the Multikey that corresponds to the given key
-    pub fn sign(&mut self, encoded_pubkey: JsValue, data: Vec<u8>) -> Result<JsValue, JsValue> {
+    /// Genertaes Proof, such as Signature, over the data with the Multikey that corresponds to the given key
+    pub fn prove(&mut self, encoded_pubkey: JsValue, data: Vec<u8>) -> Result<JsValue, JsValue> {
         let encoded_pubkey: String = encoded_pubkey
             .as_string()
             .ok_or(JsError::new("Invalid encoded public key"))?;
@@ -99,11 +118,10 @@ impl WasmWallet {
             encoded_pubkey
         )))?;
 
-        //  mk.sign_view()?.sign(data, false, None)?
         let signature = mk
             .sign_view()
             .map_err(into_js_val)?
-            .sign(&data, false, None)
+            .sign(&data, true, None)
             .map_err(into_js_val)?;
 
         // remove the key if it is DEFAULT_ENTRYKEY or DEFAULT_VLAD_KEY
