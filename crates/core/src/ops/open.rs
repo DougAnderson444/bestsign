@@ -14,12 +14,9 @@ use provenance_log::{entry, error::EntryError, Error as PlogError, Log};
 
 use crate::ops::update::OpParams;
 
-use super::traits::{EntrySigner, KeyManager};
+use super::traits::CryptoManager;
 
-pub fn create(
-    config: &Config,
-    key_manager: &mut (impl KeyManager + EntrySigner),
-) -> Result<Log, crate::Error> {
+pub fn create(config: &Config, key_manager: &mut impl CryptoManager) -> Result<Log, crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
 
@@ -178,7 +175,7 @@ pub fn create(
         let ev: Vec<u8> = e.clone().into();
         // call the call back to have the caller sign the data
         let ms = key_manager
-            .sign(&entry_mk, &ev)
+            .prove(&entry_mk, &ev)
             .map_err(|e| PlogError::from(EntryError::SignFailed(e.to_string())))?;
         // store the signature as proof
         Ok(ms.into())
@@ -243,7 +240,7 @@ mod tests {
         }
     }
 
-    impl KeyManager for TestKeyManager {
+    impl CryptoManager for TestKeyManager {
         fn get_mk(
             &mut self,
             key: &Key,
@@ -274,10 +271,8 @@ mod tests {
 
             Ok(mk)
         }
-    }
 
-    impl EntrySigner for TestKeyManager {
-        fn sign(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, Error> {
+        fn prove(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, Error> {
             Ok(mk.sign_view()?.sign(data, false, None)?)
         }
     }

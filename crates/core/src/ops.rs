@@ -8,7 +8,7 @@ pub mod update;
 pub mod config;
 
 mod traits;
-pub use traits::{EntrySigner, KeyManager};
+pub use traits::CryptoManager;
 
 /// Handy export for all public symbols
 pub mod prelude {

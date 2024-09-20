@@ -5,4 +5,4 @@ pub use utils::{
 };
 
 use serde::{Deserialize, Serialize};
-pub(crate) mod defaults;
+pub mod defaults;
