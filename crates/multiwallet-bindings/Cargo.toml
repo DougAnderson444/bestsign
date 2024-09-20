@@ -1,0 +1,16 @@
+[package]
+name = "multiwallet-bindings"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+bestsign-core = { path = "../core" }
+wasm-bindgen = "0.2"
+seed-keeper-core = { git = "https://github.com/DougAnderson444/seed-keeper.git" }
+serde-wasm-bindgen = "0.6"
+multikey = { version = "1.0", git = "https://github.com/DougAnderson444/multikey.git", branch = "switch-chacha20" }
+rand = "0.8.5"
+getrandom = { version = "0.2.8", features = ["js"] }
