@@ -121,13 +121,13 @@ pub struct WasmConfigBuilder {
 #[wasm_bindgen]
 impl WasmConfigBuilder {
     #[wasm_bindgen(constructor)]
-    pub fn new(lock: &str, unlock: &str, get_key: &Function, sign: &Function) -> Self {
+    pub fn new(lock: &str, unlock: &str, get_key: &Function, prove: &Function) -> Self {
         let lock = Script::Code(Key::default(), lock.to_string());
         let unlock = Script::Code(Key::default(), unlock.to_string());
 
         Self {
             inner: NewLogBuilder::new(LockScript(lock), UnlockScript(unlock)),
-            key_manager: MyKeyHandler::new(get_key, sign),
+            key_manager: MyKeyHandler::new(get_key, prove),
         }
     }
 
