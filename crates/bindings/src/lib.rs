@@ -5,7 +5,7 @@ use bestsign_core::{
         },
         create,
         open::config::{Config, NewLogBuilder},
-        EntrySigner, KeyManager,
+        CryptoManager,
     },
     Codec, Key, Multikey, Multisig, Script,
 };
@@ -48,7 +48,7 @@ impl MyKeyHandler {
     }
 }
 
-impl KeyManager for &MyKeyHandler {
+impl CryptoManager for &MyKeyHandler {
     fn get_mk(
         &mut self,
         key: &Key,
@@ -84,10 +84,8 @@ impl KeyManager for &MyKeyHandler {
 
         Ok(mk)
     }
-}
 
-impl EntrySigner for &MyKeyHandler {
-    fn sign(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
+    fn prove(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
         // use the callback to sign the data
         let this = JsValue::NULL;
 
