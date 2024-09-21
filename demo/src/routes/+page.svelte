@@ -24,24 +24,8 @@
 	 * @param {Function} wallet.prove - Function to prove the Multikey over given data
 	 */
 	function handleWalletCreated(wallet) {
-		get_key = (args) => {
-			console.log('CALLING get_key', args);
-
-			let res = wallet.get_mk(args);
-
-			console.log('get_key result:', res);
-
-			return res;
-		};
-		prove = (args) => {
-			console.log('CALLING prove', args);
-
-			let res = wallet.prove(args);
-
-			console.log('prove result:', res);
-
-			return res;
-		};
+		get_key = wallet.get_mk.bind(wallet);
+		prove = wallet.prove.bind(wallet);
 		walletCreated = true;
 	}
 </script>
