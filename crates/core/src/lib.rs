@@ -1,4 +1,5 @@
 #![feature(const_trait_impl)]
+#![feature(async_closure)]
 
 /// Error
 pub mod error;

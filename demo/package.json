@@ -32,6 +32,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"bestsign-bindings": "file:../crates/bindings/pkg",
 		"multiwallet-bindings": "file:../crates/multiwallet-bindings/pkg"
 	}
 }

@@ -173,6 +173,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bestsign-bindings"
+version = "0.1.0"
+dependencies = [
+ "bestsign-core",
+ "console_error_panic_hook",
+ "getrandom",
+ "js-sys",
+ "multikey",
+ "multitrait",
+ "serde",
+ "serde-wasm-bindgen",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-wasm",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "bestsign-core"
 version = "0.1.0"
 dependencies = [
@@ -191,18 +210,6 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "bindings"
-version = "0.1.0"
-dependencies = [
- "bestsign-core",
- "js-sys",
- "serde",
- "serde-wasm-bindgen",
- "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]

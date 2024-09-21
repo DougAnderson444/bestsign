@@ -1,5 +1,5 @@
 [package]
-name = "bindings"
+name = "bestsign-bindings"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,3 +12,15 @@ wasm-bindgen = "0.2"
 js-sys = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
+wasm-bindgen-futures = "0.4.43"
+getrandom = { version = "0.2", features = ["js"] }
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3" }
+tracing-wasm = { version = "0.2.1", optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
+multikey = { version = "1.0", git = "https://github.com/DougAnderson444/multikey.git", branch = "switch-chacha20" }
+multitrait = { version = "1.0", git = "https://github.com/cryptidtech/multitrait.git" }
+
+[features]
+default = ["logging"]
+logging = ["tracing-wasm", "console_error_panic_hook"]

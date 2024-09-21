@@ -9,10 +9,19 @@ use bestsign_core::{
     },
     Codec, Key, Multikey, Multisig, Script,
 };
+use multikey::{mk, EncodedMultikey, Views as _};
+use multitrait::{EncodeInto, TryDecodeFrom};
 //use js_sys::Function;
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen(start)]
+pub fn start() {
+    console_error_panic_hook::set_once();
+    tracing_wasm::set_as_global_default();
+    tracing::info!("Initialized logging in wasm bindings");
+}
 
 /// The arguments for the get_key callback
 #[derive(Serialize, Deserialize)]
@@ -32,23 +41,23 @@ pub struct SignArgs {
 
 /// Struct that will implement KeyManager
 #[wasm_bindgen]
-pub struct MyKeyHandler {
+pub struct KeyHandler {
     get_key_callback: Function,
     sign_callback: Function,
 }
 
 #[wasm_bindgen]
-impl MyKeyHandler {
+impl KeyHandler {
     #[wasm_bindgen(constructor)]
-    pub fn new(get_key: &Function, sign: &Function) -> Self {
-        MyKeyHandler {
+    pub fn new(get_key: &Function, prove: &Function) -> Self {
+        KeyHandler {
             get_key_callback: get_key.clone(),
-            sign_callback: sign.clone(),
+            sign_callback: prove.clone(),
         }
     }
 }
 
-impl CryptoManager for &MyKeyHandler {
+impl CryptoManager for &KeyHandler {
     fn get_mk(
         &mut self,
         key: &Key,
@@ -69,18 +78,30 @@ impl CryptoManager for &MyKeyHandler {
             bestsign_core::Error::Generic(format!("Error converting args to JsValue: {e}"))
         })?;
 
+        tracing::debug!("Calling get_key with args: {:?}", self.get_key_callback);
+
         // use apply to call the callback with the args
         let result = self.get_key_callback.call1(&this, &args_js).map_err(|e| {
+            tracing::error!(
+                "Error calling get_key: {}",
+                e.as_string()
+                    .unwrap_or("No Error message found".to_string())
+            );
             bestsign_core::Error::Generic(format!(
                 "Error calling get_key: {}",
-                e.as_string().unwrap()
+                e.as_string()
+                    .unwrap_or("No Error message found".to_string())
             ))
         })?;
+
+        tracing::debug!("Got result from get_key: {:?}", result);
 
         // convert the result to a Multikey
         let mk: Multikey = serde_wasm_bindgen::from_value(result).map_err(|e| {
             bestsign_core::Error::Generic(format!("Error converting result to Multikey: {}", e))
         })?;
+
+        tracing::debug!("result to Multikey: {:?}", mk);
 
         Ok(mk)
     }
@@ -99,7 +120,11 @@ impl CryptoManager for &MyKeyHandler {
         })?;
 
         let result = self.sign_callback.call1(&this, &args_js).map_err(|e| {
-            bestsign_core::Error::Generic(format!("Error calling sign: {}", e.as_string().unwrap()))
+            bestsign_core::Error::Generic(format!(
+                "Error calling sign: {}",
+                e.as_string()
+                    .unwrap_or("No Error message found".to_string())
+            ))
         })?;
 
         let sig: Multisig = serde_wasm_bindgen::from_value(result).map_err(|e| {
@@ -111,15 +136,15 @@ impl CryptoManager for &MyKeyHandler {
 }
 
 #[wasm_bindgen]
-pub struct WasmConfigBuilder {
+pub struct ProvenanceLogBuilder {
     /// The inner ConfigBuilder
     inner: NewLogBuilder,
     // key_manage must impl both KeyManager and EntrySigner
-    key_manager: MyKeyHandler,
+    key_manager: KeyHandler,
 }
 
 #[wasm_bindgen]
-impl WasmConfigBuilder {
+impl ProvenanceLogBuilder {
     #[wasm_bindgen(constructor)]
     pub fn new(lock: &str, unlock: &str, get_key: &Function, prove: &Function) -> Self {
         let lock = Script::Code(Key::default(), lock.to_string());
@@ -127,7 +152,7 @@ impl WasmConfigBuilder {
 
         Self {
             inner: NewLogBuilder::new(LockScript(lock), UnlockScript(unlock)),
-            key_manager: MyKeyHandler::new(get_key, prove),
+            key_manager: KeyHandler::new(get_key, prove),
         }
     }
 
@@ -192,12 +217,22 @@ impl WasmConfigBuilder {
             .try_build()
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         let mut key_manager = &self.key_manager;
-        let log =
-            create(&config, &mut key_manager).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        tracing::info!("Creating log with config");
+
+        let log = create(&config, &mut key_manager).map_err(|e| {
+            tracing::error!("Error creating log: {}", e);
+            JsValue::from_str(&e.to_string())
+        })?;
+
+        tracing::info!("Log created {:?}", log);
 
         // serialize the log to a JsValue
         let log_js =
             serde_wasm_bindgen::to_value(&log).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        tracing::info!("Log serialized to JsValue {:?}", log_js);
+
         Ok(log_js)
     }
 }

@@ -33,7 +33,11 @@ pub fn create(config: &Config, key_manager: &mut impl CryptoManager) -> Result<L
             let mk = key_manager.get_mk(key, *codec, *threshold, *limit)?;
 
             // get the public key
-            let pk = mk.conv_view()?.to_public_key()?;
+            let pk = if mk.attr_view()?.is_secret_key() {
+                mk.conv_view()?.to_public_key()?
+            } else {
+                mk.clone()
+            };
 
             // if revoking, explicitly delete the old key first
             if *revoke {

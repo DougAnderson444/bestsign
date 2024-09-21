@@ -22,6 +22,13 @@ pub struct KeyArgs {
     limit: usize,
 }
 
+/// SignArgs, the arguments for the sign callback
+#[derive(Serialize, Deserialize)]
+pub struct SignArgs {
+    mk: Multikey,
+    data: Vec<u8>,
+}
+
 /// Holds the wallet and keys
 #[wasm_bindgen]
 pub struct WasmWallet {
@@ -59,6 +66,7 @@ impl WasmWallet {
     }
 
     pub fn get_mk(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
+        tracing::info!("[multiwallet] get_mk called");
         // deserialize and destructure the args
         let KeyArgs {
             key,
@@ -67,7 +75,18 @@ impl WasmWallet {
             limit,
         } = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
 
+        tracing::info!(
+            "[multiwallet] key: {}, codec: {}, threshold: {}, limit: {}",
+            key,
+            codec,
+            threshold,
+            limit
+        );
+
         let codec = Codec::try_from(codec.as_str()).map_err(into_js_val)?;
+
+        tracing::debug!("[multiwallet] codec: {:?}", codec);
+
         // if key is DEFAULT_ENTRYKEY or DEFAULT_VLAD_KEY, generate random key.
         // Otherwise, use the key from seed.
         let mk = match key.as_str() {
@@ -93,6 +112,8 @@ impl WasmWallet {
             }
         }?;
 
+        tracing::debug!("[multiwallet] mk: {:?}", mk);
+
         // save the key in the HashMap
         let key = Key::try_from(key).map_err(into_js_val)?;
         let pk = mk
@@ -101,22 +122,40 @@ impl WasmWallet {
             .to_public_key()
             .map_err(into_js_val)?;
 
-        let epk = EncodedMultikey::from(pk);
+        let epk = EncodedMultikey::from(pk.clone());
+
+        tracing::debug!("epk: {}", epk.to_string());
+
         self.keys.insert(epk.to_string(), (mk.clone(), key));
 
+        tracing::info!("key inserted");
+
+        // Serialize the pk Multikey
+        let mk_serde = serde_wasm_bindgen::to_value(&mk).map_err(into_js_val)?;
+
         // return the epk string as JsValue
-        Ok(JsValue::from_str(&epk.to_string()))
+        Ok(mk_serde)
     }
 
     /// Genertaes Proof, such as Signature, over the data with the Multikey that corresponds to the given key
-    pub fn prove(&mut self, encoded_pubkey: JsValue, data: Vec<u8>) -> Result<JsValue, JsValue> {
-        let encoded_pubkey: String = encoded_pubkey
-            .as_string()
-            .ok_or(JsError::new("Invalid encoded public key"))?;
-        let (mk, key) = self.keys.get(&encoded_pubkey).ok_or(JsError::new(&format!(
-            "Key not found: {:?}",
-            encoded_pubkey
-        )))?;
+    pub fn prove(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
+        tracing::debug!("[multiwallet] prove called");
+
+        // deserialize and destructure the args
+        let SignArgs { mk, data } = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
+
+        // convert mk to epk
+        let pk = mk
+            .conv_view()
+            .map_err(into_js_val)?
+            .to_public_key()
+            .map_err(into_js_val)?;
+        let epk = EncodedMultikey::from(pk.clone());
+
+        let (mk, key) = self
+            .keys
+            .get(&epk.to_string())
+            .ok_or(JsError::new(&format!("Key not found: {:?}", mk)))?;
 
         let signature = mk
             .sign_view()
@@ -126,7 +165,7 @@ impl WasmWallet {
 
         // remove the key if it is DEFAULT_ENTRYKEY or DEFAULT_VLAD_KEY
         if key.to_string() == DEFAULT_ENTRYKEY || key.to_string() == DEFAULT_VLAD_KEY {
-            self.keys.remove(&encoded_pubkey);
+            self.keys.remove(&epk.to_string());
         }
 
         let sig_js = serde_wasm_bindgen::to_value(&signature).map_err(into_js_val)?;
