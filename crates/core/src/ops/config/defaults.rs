@@ -31,8 +31,8 @@ pub(crate) fn default_pubkey_params() -> OpParams {
     OpParams::KeyGen {
         key: Key::try_from(DEFAULT_PUBKEY).unwrap(),
         codec: Codec::Ed25519Priv,
-        threshold: 0,
-        limit: 0,
+        threshold: 1,
+        limit: 1,
         revoke: false,
     }
 }
@@ -42,8 +42,8 @@ pub(crate) fn default_entrykey_params() -> OpParams {
     OpParams::KeyGen {
         key: Key::try_from(DEFAULT_ENTRYKEY).unwrap(),
         codec: Codec::Ed25519Priv,
-        threshold: 0,
-        limit: 0,
+        threshold: 1,
+        limit: 1,
         revoke: false,
     }
 }
