@@ -78,8 +78,6 @@ impl CryptoManager for &KeyHandler {
             bestsign_core::Error::Generic(format!("Error converting args to JsValue: {e}"))
         })?;
 
-        tracing::debug!("Calling get_key with args: {:?}", self.get_key_callback);
-
         // use apply to call the callback with the args
         let result = self.get_key_callback.call1(&this, &args_js).map_err(|e| {
             tracing::error!(
@@ -94,14 +92,10 @@ impl CryptoManager for &KeyHandler {
             ))
         })?;
 
-        tracing::debug!("Got result from get_key: {:?}", result);
-
         // convert the result to a Multikey
         let mk: Multikey = serde_wasm_bindgen::from_value(result).map_err(|e| {
             bestsign_core::Error::Generic(format!("Error converting result to Multikey: {}", e))
         })?;
-
-        tracing::debug!("result to Multikey: {:?}", mk);
 
         Ok(mk)
     }
@@ -218,20 +212,14 @@ impl ProvenanceLogBuilder {
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         let mut key_manager = &self.key_manager;
 
-        tracing::info!("Creating log with config");
-
         let log = create(&config, &mut key_manager).map_err(|e| {
             tracing::error!("Error creating log: {}", e);
             JsValue::from_str(&e.to_string())
         })?;
 
-        tracing::info!("Log created {:?}", log);
-
         // serialize the log to a JsValue
         let log_js =
             serde_wasm_bindgen::to_value(&log).map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-        tracing::info!("Log serialized to JsValue {:?}", log_js);
 
         Ok(log_js)
     }
