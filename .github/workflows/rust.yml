@@ -37,6 +37,19 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+      - name: Configure Git
+        run: |
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+      - name: Configure Cargo
+        run: |
+          mkdir -p ~/.cargo
+          echo '[net]' >> ~/.cargo/config.toml
+          echo 'git-fetch-with-cli = true' >> ~/.cargo/config.toml
       - run: ${{ matrix.deps }}
       - run: cargo build --target ${{ matrix.target }} --manifest-path crates/core/Cargo.toml --all-features
 
@@ -56,6 +69,19 @@ jobs:
           with:
             toolchain: ${{ matrix.rust }}
             target: ${{ matrix.target }}
+        - name: Install SSH Key
+          uses: shimataro/ssh-key-action@v2
+          with:
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        - name: Configure Git
+          run: |
+            git config --global url."git@github.com:".insteadOf "https://github.com/"
+        - name: Configure Cargo
+          run: |
+            mkdir -p ~/.cargo
+            echo '[net]' >> ~/.cargo/config.toml
+            echo 'git-fetch-with-cli = true' >> ~/.cargo/config.toml
         - run: cargo build --target ${{ matrix.target }} --manifest-path crates/core/Cargo.toml --features wasm
 
   test:
@@ -70,6 +96,19 @@ jobs:
         - uses: dtolnay/rust-toolchain@stable
           with:
             toolchain: ${{ matrix.rust }}
+        - name: Install SSH Key
+          uses: shimataro/ssh-key-action@v2
+          with:
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        - name: Configure Git
+          run: |
+            git config --global url."git@github.com:".insteadOf "https://github.com/"
+        - name: Configure Cargo
+          run: |
+            mkdir -p ~/.cargo
+            echo '[net]' >> ~/.cargo/config.toml
+            echo 'git-fetch-with-cli = true' >> ~/.cargo/config.toml
         - run: cargo test --workspace --verbose --release --manifest-path crates/core/Cargo.toml
         - run: cargo test --workspace --all-features --manifest-path crates/core/Cargo.toml # debug build
         - run: cargo test --workspace --release --all-features --all-targets --manifest-path crates/core/Cargo.toml
