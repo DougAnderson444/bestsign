@@ -1,3 +1,6 @@
 [env]
 RUST_LOG = "trace"
 RUST_BACKTRACE = "1"
+
+[net]
+git-fetch-with-cli = true
