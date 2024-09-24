@@ -5,13 +5,11 @@ use bestsign_core::{
         },
         create,
         open::config::{Config, NewLogBuilder},
+        update::UpdateConfig,
         CryptoManager,
     },
-    Codec, Key, Multikey, Multisig, Script,
+    Codec, Key, Log, Multikey, Multisig, Script,
 };
-use multikey::{mk, EncodedMultikey, Views as _};
-use multitrait::{EncodeInto, TryDecodeFrom};
-//use js_sys::Function;
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -40,15 +38,13 @@ pub struct SignArgs {
 }
 
 /// Struct that will implement KeyManager
-#[wasm_bindgen]
 pub struct KeyHandler {
     get_key_callback: Function,
     sign_callback: Function,
 }
 
-#[wasm_bindgen]
 impl KeyHandler {
-    #[wasm_bindgen(constructor)]
+    /// Create a new KeyHandler with the given callback functions
     pub fn new(get_key: &Function, prove: &Function) -> Self {
         KeyHandler {
             get_key_callback: get_key.clone(),
@@ -58,6 +54,7 @@ impl KeyHandler {
 }
 
 impl CryptoManager for &KeyHandler {
+    /// Get Multikey using the given callback function.
     fn get_mk(
         &mut self,
         key: &Key,
@@ -100,6 +97,7 @@ impl CryptoManager for &KeyHandler {
         Ok(mk)
     }
 
+    /// Binds the prover to the given callback function
     fn prove(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
         // use the callback to sign the data
         let this = JsValue::NULL;
@@ -174,7 +172,7 @@ impl ProvenanceLogBuilder {
         Ok(())
     }
 
-    // with_use_str
+    // Add a Key Value (String) to the log
     #[wasm_bindgen]
     pub fn add_string(&mut self, op: JsValue) -> Result<(), JsValue> {
         let val: UseStr = serde_wasm_bindgen::from_value(op)?;
@@ -182,7 +180,7 @@ impl ProvenanceLogBuilder {
         Ok(())
     }
 
-    /// Add a Cid to the log
+    /// Add data to the log, encoded as a CID
     #[wasm_bindgen]
     pub fn add_cid(&mut self, op: JsValue) -> Result<(), JsValue> {
         let val: CidGen = serde_wasm_bindgen::from_value(op)?;
@@ -222,5 +220,38 @@ impl ProvenanceLogBuilder {
             serde_wasm_bindgen::to_value(&log).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         Ok(log_js)
+    }
+}
+
+/// Loads a Plog so it can be displayed and updated in the UI
+#[wasm_bindgen]
+pub struct ProvenanceLog {
+    config: UpdateConfig,
+    log: bestsign_core::Log,
+    key_manager: KeyHandler,
+}
+
+#[wasm_bindgen]
+impl ProvenanceLog {
+    /// Load a Plog from a serialized config
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        log: JsValue,
+        get_key: &Function,
+        prove: &Function,
+    ) -> Result<ProvenanceLog, JsValue> {
+        let log: Log = serde_wasm_bindgen::from_value(log)
+            .map_err(|e| JsValue::from_str(&format!("Error deserializing log: {}", e)))?;
+
+        // start with Default Config, user can update it as desired
+        let config = UpdateConfig::default();
+
+        let key_manager = KeyHandler::new(get_key, prove);
+
+        Ok(ProvenanceLog {
+            config,
+            log,
+            key_manager,
+        })
     }
 }
