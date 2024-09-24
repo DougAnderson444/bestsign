@@ -386,7 +386,7 @@ checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 [[package]]
 name = "comrade-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/DougAnderson444/comrade.git#e7c8749ee71bcea2f50917c14d556ca1034a9d3d"
+source = "git+ssh://git@github.com/DougAnderson444/comrade.git#4fbd5b6c87c034ecf320b4e11cfdece50562b370"
 dependencies = [
  "multihash",
  "multikey 1.0.7 (git+https://github.com/DougAnderson444/multikey.git?branch=switch-chacha20)",
