@@ -27,15 +27,6 @@ check_preimage("/hash")`;
 push("/entry/proof");`;
 
 	/** @type {string} */
-	let vladKey = '/vlad/key';
-
-	/** @type {string} */
-	let entryKey = '/entrykey';
-
-	/** @type {string} */
-	let pubKey = '/pubkey';
-
-	/** @type {string} */
 	let result = '';
 
 	onMount(async () => {
@@ -111,39 +102,6 @@ push("/entry/proof");`;
 		>
 			Update Scripts
 		</button>
-
-		<div>
-			<label for="vladKey" class="block text-sm font-medium text-gray-700 mb-2">VLAD Key</label>
-			<input
-				type="text"
-				id="vladKey"
-				bind:value={vladKey}
-				class="w-full p-2 font-mono text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-				placeholder="Enter VLAD key"
-			/>
-		</div>
-
-		<div>
-			<label for="entryKey" class="block text-sm font-medium text-gray-700 mb-2">Entry Key</label>
-			<input
-				type="text"
-				id="entryKey"
-				bind:value={entryKey}
-				class="w-full p-2 font-mono text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-				placeholder="Enter entry key"
-			/>
-		</div>
-
-		<div>
-			<label for="pubKey" class="block text-sm font-medium text-gray-700 mb-2">Public Key</label>
-			<input
-				type="text"
-				id="pubKey"
-				bind:value={pubKey}
-				class="w-full p-2 font-mono text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-				placeholder="Enter public key"
-			/>
-		</div>
 
 		<button
 			on:click={createLog}

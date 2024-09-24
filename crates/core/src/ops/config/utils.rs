@@ -62,13 +62,18 @@ impl Deref for HashCodec {
     }
 }
 
-/// A struct for the Key Params.
+/// Add a Key to the OpParams
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyParams {
+    /// How you identify this key, ie. "/pubkey" or "/key1"
     pub key: Key,
+    /// The codec to use for the key, ie. "ed25519" or "secp256k1"
     pub codec: KeyCodec,
+    /// Optional threshold for threshold key splitting
     pub threshold: Option<usize>,
+    /// Optional limit for threshold key splitting
     pub limit: Option<usize>,
+    /// Optional flag to revoke the previous key
     pub revoke: Option<bool>,
 }
 
@@ -85,23 +90,23 @@ impl From<KeyParams> for OpParams {
     }
 }
 
-// UseStr
+/// Add a Key Value<String>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseStr {
     pub key: Key,
-    pub s: String,
+    pub value: String,
 }
 
 impl From<UseStr> for OpParams {
     fn from(params: UseStr) -> Self {
         OpParams::UseStr {
             key: params.key,
-            s: params.s,
+            s: params.value,
         }
     }
 }
 
-// CidGen
+// Add a Content Identifier (CID) to the OpParams
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CidGen {
     pub key: Key,
