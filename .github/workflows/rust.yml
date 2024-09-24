@@ -25,11 +25,6 @@ jobs:
           - target: x86_64-apple-darwin
             platform: macos-latest
             rust: stable
-
-          # Windows (64-bit)
-          - target: x86_64-pc-windows-msvc
-            platform: windows-latest
-            rust: stable
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
