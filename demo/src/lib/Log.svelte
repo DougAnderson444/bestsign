@@ -1,6 +1,9 @@
 <script>
 	import { default as wasm, ProvenanceLogBuilder } from 'bestsign-bindings';
 	import { onMount } from 'svelte';
+	import ScriptEditor from './components/ScriptEditor.svelte';
+	import Modal from './components/Modal.svelte';
+	import KeyValuePairInput from './components/KeyValuePairInput.svelte';
 
 	/**
 	 * Gets the Multikey. Must be set to a wallet that provides this function.
@@ -29,6 +32,12 @@ push("/entry/proof");`;
 	/** @type {string} */
 	let result = '';
 
+	/** @type {boolean} */
+	let showModal = false;
+
+	/** @type {Array<{ key: string, value: string }>} */
+	let keyValuePairs = [];
+
 	onMount(async () => {
 		await wasm();
 		initializeLogBuilder();
@@ -43,12 +52,23 @@ push("/entry/proof");`;
 		logBuilder = new ProvenanceLogBuilder(lockScript, unlockScript, get_key, prove);
 	}
 
+	function handleScriptUpdate(event) {
+		const { lockScript: newLockScript, unlockScript: newUnlockScript } = event.detail;
+		lockScript = newLockScript;
+		unlockScript = newUnlockScript;
+		updateScripts();
+	}
+
 	function updateScripts() {
 		if (logBuilder) {
 			logBuilder.set_entry_lock_script(lockScript);
 			logBuilder.set_entry_unlock_script(unlockScript);
 			result = 'Scripts updated successfully';
 		}
+	}
+
+	function handleKeyValuePairsUpdate(event) {
+		keyValuePairs = event.detail;
 	}
 
 	async function createLog() {
@@ -58,6 +78,11 @@ push("/entry/proof");`;
 		}
 
 		try {
+			// Add key-value pairs to the log builder
+			for (const { key, value } of keyValuePairs) {
+				logBuilder.add_string(key, value);
+			}
+
 			const log = logBuilder.create();
 			result = `Log created successfully. First lock: ${log.first_lock}`;
 			console.log('Created log:', log);
@@ -66,43 +91,36 @@ push("/entry/proof");`;
 			result = `Error creating log: ${error}`;
 		}
 	}
+
+	function toggleModal() {
+		showModal = !showModal;
+	}
 </script>
 
 <div class="p-6 max-w-2xl mx-auto">
 	<h1 class="text-3xl font-bold underline mb-6">Create Provenance Log</h1>
 
-	<div class="space-y-6">
-		<div>
-			<label for="lockScript" class="block text-sm font-medium text-gray-700 mb-2"
-				>Lock Script</label
-			>
-			<textarea
-				id="lockScript"
-				bind:value={lockScript}
-				class="w-full p-2 font-mono text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-				rows="3"
-			></textarea>
-		</div>
+	<button
+		on:click={toggleModal}
+		class="mb-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+	>
+		Advanced
+	</button>
 
-		<div>
-			<label for="unlockScript" class="block text-sm font-medium text-gray-700 mb-2"
-				>Unlock Script</label
-			>
-			<textarea
-				id="unlockScript"
-				bind:value={unlockScript}
-				class="w-full p-2 font-mono text-sm bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-				rows="3"
-			></textarea>
-		</div>
+	{#if showModal}
+		<Modal title="Advanced Settings" on:close={toggleModal}>
+			<ScriptEditor
+				{lockScript}
+				{unlockScript}
+				on:update={handleScriptUpdate}
+				on:close={toggleModal}
+			/>
+		</Modal>
+	{/if}
 
-		<button
-			on:click={updateScripts}
-			class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-		>
-			Update Scripts
-		</button>
+	<KeyValuePairInput {keyValuePairs} on:update={handleKeyValuePairsUpdate} />
 
+	<div class="mt-6">
 		<button
 			on:click={createLog}
 			class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
