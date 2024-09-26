@@ -1,3 +1,4 @@
+use bestsign_core::ops::config::defaults::DEFAULT_PUBKEY;
 use bestsign_core::utils::get_display_data;
 use bestsign_core::{
     ops::{
@@ -7,7 +8,7 @@ use bestsign_core::{
         create,
         open::config::{Config, NewLogBuilder},
         update::UpdateConfig,
-        CryptoManager,
+        update_plog, CryptoManager,
     },
     Codec, Key, Log, Multikey, Multisig, Script,
 };
@@ -38,7 +39,7 @@ pub struct KeyArgs {
 }
 
 /// The arguments for the sign callback
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SignArgs {
     mk: Multikey,
     data: Vec<u8>,
@@ -46,6 +47,7 @@ pub struct SignArgs {
 
 /// Struct that will implement KeyManager
 pub struct KeyHandler {
+    key: Option<Multikey>,
     get_key_callback: Function,
     sign_callback: Function,
 }
@@ -56,11 +58,51 @@ impl KeyHandler {
         KeyHandler {
             get_key_callback: get_key.clone(),
             sign_callback: prove.clone(),
+            key: None,
         }
+    }
+
+    /// Set the key
+    pub fn set_key(&mut self, key: Multikey) {
+        self.key = Some(key);
+    }
+
+    /// Get the /pubkey
+    pub fn get_key(&self, key: &Key) -> Result<Multikey, bestsign_core::Error> {
+        let key_args = KeyArgs {
+            key: key.to_string(),
+            codec: Codec::Ed25519Priv.to_string(),
+            threshold: 1,
+            limit: 1,
+        };
+        let k = self
+            .get_key_callback
+            .call1(
+                &JsValue::NULL,
+                &serde_wasm_bindgen::to_value(&key_args).unwrap(),
+            )
+            .map_err(|e| {
+                tracing::error!(
+                    "Error calling get_key: {}",
+                    e.as_string()
+                        .unwrap_or("No Error message found".to_string())
+                );
+                bestsign_core::Error::Generic(format!(
+                    "Error calling get_key: {}",
+                    e.as_string()
+                        .unwrap_or("No Error message found".to_string())
+                ))
+            })?;
+
+        let mk: Multikey = serde_wasm_bindgen::from_value(k).map_err(|e| {
+            bestsign_core::Error::Generic(format!("Error converting result to Multikey: {}", e))
+        })?;
+
+        Ok(mk)
     }
 }
 
-impl CryptoManager for &KeyHandler {
+impl CryptoManager for KeyHandler {
     /// Get Multikey using the given callback function.
     fn get_mk(
         &mut self,
@@ -101,6 +143,11 @@ impl CryptoManager for &KeyHandler {
             bestsign_core::Error::Generic(format!("Error converting result to Multikey: {}", e))
         })?;
 
+        // if Key is "/pubkey" then set the key
+        if key.to_string() == DEFAULT_PUBKEY {
+            tracing::debug!("Setting key {}", key.to_string());
+            self.key = Some(mk.clone());
+        }
         Ok(mk)
     }
 
@@ -108,6 +155,8 @@ impl CryptoManager for &KeyHandler {
     fn prove(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
         // use the callback to sign the data
         let this = JsValue::NULL;
+
+        tracing::debug!("Request Prove from Bindings");
 
         let args = SignArgs {
             mk: mk.clone(),
@@ -182,9 +231,7 @@ impl ProvenanceLogBuilder {
     // Add a Key Value (String) to the log
     #[wasm_bindgen]
     pub fn add_string(&mut self, op: JsValue) -> Result<(), JsValue> {
-        tracing::debug!("add_string: {:?}", op);
         let val: UseStr = serde_wasm_bindgen::from_value(op)?;
-        tracing::debug!("UseStr: {:?}", val);
         self.inner
             .with_use_str(val)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
@@ -213,15 +260,14 @@ impl ProvenanceLogBuilder {
 
     /// Creates a new Plog using self.config
     #[wasm_bindgen]
-    pub fn create(&self) -> Result<JsValue, JsValue> {
+    pub fn create(&mut self) -> Result<JsValue, JsValue> {
         let config = self
             .inner
             .clone()
             .try_build()
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        let mut key_manager = &self.key_manager;
 
-        let log = create(&config, &mut key_manager).map_err(|e| {
+        let log = create(&config, &mut self.key_manager).map_err(|e| {
             tracing::error!("Error creating log: {}", e);
             JsValue::from_str(&e.to_string())
         })?;
@@ -251,15 +297,27 @@ pub struct ProvenanceLog {
 impl ProvenanceLog {
     /// Load a Plog from a serialized config
     #[wasm_bindgen(constructor)]
-    pub fn new(log: &[u8], get_key: &Function, prove: &Function) -> Result<ProvenanceLog, JsValue> {
+    pub fn new(
+        log: &[u8],
+        unlock: String,
+        get_key: &Function,
+        prove: &Function,
+    ) -> Result<ProvenanceLog, JsValue> {
         // deserialize the log from CBOR
         let log: Log = serde_cbor::from_slice(log)
             .map_err(|e| JsValue::from_str(&format!("Error deserializing log: {}", e)))?;
 
         // start with Default Config, user can update it as desired
-        let config = UpdateConfig::default();
-
         let key_manager = KeyHandler::new(get_key, prove);
+
+        // setup /pubkey with Key from DEFAULT_PUBKEY
+        let pubkey_rust = key_manager
+            .get_key(&Key::try_from(DEFAULT_PUBKEY).unwrap())
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        tracing::info!("Loaded pubkey: {:?}", pubkey_rust);
+
+        let config = UpdateConfig::new(Script::Code(Key::default(), unlock), pubkey_rust);
 
         Ok(ProvenanceLog {
             config,
@@ -276,5 +334,49 @@ impl ProvenanceLog {
 
         serde_wasm_bindgen::to_value(&display_data)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize display data: {}", e)))
+    }
+
+    // Add a Key Value (String) to the log
+    #[wasm_bindgen]
+    pub fn add_string(&mut self, op: JsValue) -> Result<(), JsValue> {
+        let val: UseStr = serde_wasm_bindgen::from_value(op)?;
+        self.config.add_op(
+            val.try_into()
+                .map_err(|e: bestsign_core::Error| JsValue::from_str(&e.to_string()))?,
+        );
+        Ok(())
+    }
+
+    /// Set the unlock script in self.config
+    #[wasm_bindgen]
+    pub fn set_unlock(&mut self, script: &str) {
+        let script = Script::Code(Key::default(), script.to_string());
+        self.config.entry_unlock_script = script;
+    }
+
+    /// Add a lock script in self.config
+    #[wasm_bindgen]
+    pub fn add_lock_script(&mut self, key_path: &str, script: &str) -> Result<(), JsValue> {
+        let script = Script::Code(
+            Key::try_from(key_path).map_err(|e| JsValue::from_str(&e.to_string()))?,
+            script.to_string(),
+        );
+        self.config.add_lock(key_path, script);
+        Ok(())
+    }
+
+    /// Update the Plog in-place with the current config
+    #[wasm_bindgen]
+    pub fn update(&mut self) -> Result<(), JsValue> {
+        tracing::info!("Updating Plog with config");
+
+        let config = self.config.build();
+
+        tracing::info!("Config set");
+
+        update_plog(&mut self.log, &config, &mut self.key_manager)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        Ok(())
     }
 }

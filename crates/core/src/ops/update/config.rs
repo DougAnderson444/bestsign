@@ -39,23 +39,28 @@ impl UpdateConfig {
     }
 
     /// Add an Entry lock script to the configuration
-    pub fn add_lock(mut self, key_path: impl AsRef<str>, script: Script) -> Self {
+    pub fn add_lock(&mut self, key_path: impl AsRef<str>, script: Script) -> &mut Self {
         self.add_entry_lock_scripts
             .push((key_path.as_ref().to_owned(), script));
         self
     }
 
     /// Remove an Entry lock script from the configuration
-    pub fn remove_lock(mut self, key_path: impl AsRef<str>) -> Self {
+    pub fn remove_lock(&mut self, key_path: impl AsRef<str>) -> &mut Self {
         self.remove_entry_lock_scripts
             .push(key_path.as_ref().to_owned());
         self
     }
 
     /// Add an entry operation to the configuration
-    pub fn add_op(mut self, op: OpParams) -> Self {
+    pub fn add_op(&mut self, op: OpParams) -> &mut Self {
         self.entry_ops.push(op);
         self
+    }
+
+    /// Build the configuration
+    pub fn build(&self) -> Self {
+        self.clone()
     }
 }
 
@@ -80,7 +85,8 @@ mod tests {
         let config = UpdateConfig::new(script.clone(), mk.clone())
             .add_op(op.clone())
             .add_lock("test", script.clone())
-            .remove_lock("test");
+            .remove_lock("test")
+            .build();
 
         assert_eq!(config.entry_unlock_script, script);
         assert_eq!(config.entry_signing_key, mk);

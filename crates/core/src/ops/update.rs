@@ -18,6 +18,7 @@ use provenance_log::{entry, error::Error as PlogError, Log};
 
 use crate::{error::OpenError, ops::traits::CryptoManager, utils, Error};
 
+/// Update the provenance log with a new entry(s) and additional ops
 pub fn update_plog(
     plog: &mut Log,
     config: &UpdateConfig,
@@ -204,11 +205,6 @@ mod tests {
             _threshold: usize,
             _limit: usize,
         ) -> Result<Multikey, Error> {
-            tracing::info!(
-                "Key request for {:?} with codec {:#?}",
-                key.to_string(),
-                codec
-            );
             let mut rng = rand::rngs::OsRng;
             let mk = mk::Builder::new_from_random_bytes(codec, &mut rng)?.try_build()?;
 
@@ -276,7 +272,8 @@ mod tests {
             key: Key::try_from(DEFAULT_ENTRYKEY).unwrap(),
         })
         // Entry lock scripts define conditions which must be met by the next entry in the plog for it to be valid.
-        .add_lock(Key::try_from("/delegated/")?, lock_script);
+        .add_lock(Key::try_from("/delegated/")?, lock_script)
+        .build();
 
         // tak config and use update method with TestKeyManager to update the log
         update_plog(&mut plog, &update_cfg, &mut key_manager)?;

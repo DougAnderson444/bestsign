@@ -4,6 +4,7 @@ pub use open::create;
 
 /// Update a provenance log
 pub mod update;
+pub use update::update_plog;
 
 pub mod config;
 

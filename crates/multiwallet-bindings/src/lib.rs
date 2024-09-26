@@ -23,7 +23,7 @@ pub struct KeyArgs {
 }
 
 /// SignArgs, the arguments for the sign callback
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SignArgs {
     mk: Multikey,
     data: Vec<u8>,
@@ -66,6 +66,7 @@ impl WasmWallet {
     }
 
     pub fn get_mk(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
+        tracing::info!("[multiwallet] get_mk called");
         // deserialize and destructure the args
         let KeyArgs {
             key,
@@ -73,14 +74,6 @@ impl WasmWallet {
             threshold,
             limit,
         } = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
-
-        tracing::info!(
-            "[multiwallet] key: {}, codec: {}, threshold: {}, limit: {}",
-            key,
-            codec,
-            threshold,
-            limit
-        );
 
         let codec = Codec::try_from(codec.as_str()).map_err(into_js_val)?;
 
@@ -119,37 +112,56 @@ impl WasmWallet {
 
         let epk = EncodedMultikey::from(pk.clone());
 
-        self.keys.insert(epk.to_string(), (mk.clone(), key));
+        self.keys.insert(epk.to_string(), (mk.clone(), key.clone()));
 
         // Serialize the pk Multikey
         let mk_serde = serde_wasm_bindgen::to_value(&mk).map_err(into_js_val)?;
 
-        // return the epk string as JsValue
+        // return the mk string as JsValue
         Ok(mk_serde)
     }
 
     /// Genertaes Proof, such as Signature, over the data with the Multikey that corresponds to the given key
     pub fn prove(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
+        //tracing::info!("prove called with {:?}", args);
         // deserialize and destructure the args
-        let SignArgs { mk, data } = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
+        let sign_args: SignArgs = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
+
+        //tracing::info!("sign_args: {:?}", sign_args);
+
+        let SignArgs { mk, data } = sign_args;
+
+        tracing::info!("look up mk");
 
         // convert mk to epk
-        let pk = mk
-            .conv_view()
-            .map_err(into_js_val)?
-            .to_public_key()
-            .map_err(into_js_val)?;
+        let attr = mk.attr_view().map_err(into_js_val)?;
+
+        let pk = if attr.is_secret_key() {
+            tracing::info!("Secret key found, converting to public key");
+            mk.conv_view()
+                .map_err(into_js_val)?
+                .to_public_key()
+                .map_err(into_js_val)?
+        } else {
+            tracing::info!("Public key found");
+            mk.clone()
+        };
+
         let epk = EncodedMultikey::from(pk.clone());
+
+        //tracing::info!("epk: {:?}", epk.to_string());
 
         let (mk, key) = self
             .keys
             .get(&epk.to_string())
-            .ok_or(JsError::new(&format!("Key not found: {:?}", mk)))?;
+            .ok_or(JsError::new("Key not found."))?;
+
+        //tracing::info!("key: {:?}", mk);
 
         let signature = mk
             .sign_view()
             .map_err(into_js_val)?
-            .sign(&data, true, None)
+            .sign(&data, false, None)
             .map_err(into_js_val)?;
 
         // remove the key if it is DEFAULT_ENTRYKEY or DEFAULT_VLAD_KEY
