@@ -1,3 +1,4 @@
+use bestsign_core::utils::get_display_data;
 use bestsign_core::{
     ops::{
         config::{
@@ -11,6 +12,12 @@ use bestsign_core::{
     Codec, Key, Log, Multikey, Multisig, Script,
 };
 use js_sys::Function;
+use multibase::Base;
+use multicid::{Cid, EncodedCid, EncodedVlad, Vlad};
+use multihash::EncodedMultihash;
+use multikey::views::Views;
+use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
+use provenance_log::{LogValue, Pairs};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -175,8 +182,12 @@ impl ProvenanceLogBuilder {
     // Add a Key Value (String) to the log
     #[wasm_bindgen]
     pub fn add_string(&mut self, op: JsValue) -> Result<(), JsValue> {
+        tracing::debug!("add_string: {:?}", op);
         let val: UseStr = serde_wasm_bindgen::from_value(op)?;
-        self.inner.with_use_str(val);
+        tracing::debug!("UseStr: {:?}", val);
+        self.inner
+            .with_use_str(val)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         Ok(())
     }
 
@@ -215,9 +226,14 @@ impl ProvenanceLogBuilder {
             JsValue::from_str(&e.to_string())
         })?;
 
-        // serialize the log to a JsValue
-        let log_js =
-            serde_wasm_bindgen::to_value(&log).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        // serialize the log to serde_cbor and then to JsValue for return
+        let log_cbor = serde_cbor::to_vec(&log).map_err(|e| {
+            tracing::error!("Error serializing log to CBOR: {}", e);
+            JsValue::from_str(&e.to_string())
+        })?;
+
+        // use js_sys
+        let log_js = js_sys::Uint8Array::from(log_cbor.as_slice()).into();
 
         Ok(log_js)
     }
@@ -235,12 +251,9 @@ pub struct ProvenanceLog {
 impl ProvenanceLog {
     /// Load a Plog from a serialized config
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        log: JsValue,
-        get_key: &Function,
-        prove: &Function,
-    ) -> Result<ProvenanceLog, JsValue> {
-        let log: Log = serde_wasm_bindgen::from_value(log)
+    pub fn new(log: &[u8], get_key: &Function, prove: &Function) -> Result<ProvenanceLog, JsValue> {
+        // deserialize the log from CBOR
+        let log: Log = serde_cbor::from_slice(log)
             .map_err(|e| JsValue::from_str(&format!("Error deserializing log: {}", e)))?;
 
         // start with Default Config, user can update it as desired
@@ -253,5 +266,15 @@ impl ProvenanceLog {
             log,
             key_manager,
         })
+    }
+
+    /// Get a structured representation of the Plog for display
+    #[wasm_bindgen]
+    pub fn plog(&self) -> Result<JsValue, JsValue> {
+        let display_data =
+            get_display_data(&self.log).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        serde_wasm_bindgen::to_value(&display_data)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize display data: {}", e)))
     }
 }

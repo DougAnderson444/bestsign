@@ -3,7 +3,7 @@ use std::ops::Deref;
 use multicodec::Codec;
 use provenance_log::{Key, Script};
 
-use crate::ops::update::OpParams;
+use crate::{ops::update::OpParams, Error};
 
 use super::*;
 
@@ -93,16 +93,18 @@ impl From<KeyParams> for OpParams {
 /// Add a Key Value<String>
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseStr {
-    pub key: Key,
+    pub key: String,
     pub value: String,
 }
 
-impl From<UseStr> for OpParams {
-    fn from(params: UseStr) -> Self {
-        OpParams::UseStr {
-            key: params.key,
+impl TryFrom<UseStr> for OpParams {
+    type Error = Error;
+
+    fn try_from(params: UseStr) -> Result<Self, Self::Error> {
+        Ok(OpParams::UseStr {
+            key: Key::try_from(params.key)?,
             s: params.value,
-        }
+        })
     }
 }
 

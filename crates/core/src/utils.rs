@@ -1,10 +1,16 @@
 use std::mem;
 
-use multiutil::{BaseEncoded, DetectedEncoder, EncodingInfo};
-use provenance_log::{entry, vm, OpId};
+use multibase::Base;
+use multicid::{Cid, EncodedCid, EncodedVlad, Vlad};
+use multicodec::Codec;
+use multihash::EncodedMultihash;
+use multikey::{Multikey, Views as _};
+use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
+use provenance_log::{entry, vm, Key, Log, LogValue, OpId, Pairs, Script};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    error::OpenError,
+    error::{OpenError, PlogError},
     ops::update::{op, OpParams},
     Error,
 };
@@ -54,7 +60,7 @@ pub(crate) fn apply_operations(
 /// Extracts an Option<T> the [provenance_log::LogValue]
 ///
 /// where T: TryFrom<&'a [u8]> + EncodingInfo, BaseEncoded<T, DetectedEncoder>: TryFrom<&'a str>
-pub(crate) fn try_extract<'a, T>(value: &'a vm::Value) -> Option<T>
+pub fn try_extract<'a, T>(value: &'a vm::Value) -> Option<T>
 where
     T: TryFrom<&'a [u8]> + EncodingInfo,
     BaseEncoded<T, DetectedEncoder>: TryFrom<&'a str>,
@@ -66,6 +72,176 @@ where
                 .ok()
                 .map(|be| be.to_inner())
         }
+        _ => None,
+    }
+}
+
+/// Vlad details
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VladDetails {
+    pub vlad: Vlad,
+    pub encoded: String,
+    pub verified: bool,
+    pub key: Multikey,
+    pub encoded_fingerprint: String,
+}
+
+/// Utility enum to hold all possible display data types
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DisplayData {
+    ReturnValue {
+        vlad: VladDetails,
+        entries_count: usize,
+        kvp_data: Vec<DisplayData>,
+    },
+    Multikey {
+        key: Key,
+        codec_type: &'static str,
+        codec: String,
+        fingerprint: String,
+    },
+    Vlad {
+        codec_type: &'static str,
+        encoded: String,
+    },
+    Script {
+        key: Key,
+        codec_type: &'static str,
+        length: usize,
+    },
+    Cid {
+        key: Key,
+        codec: String,
+        encoded: String,
+        codec_type: &'static str,
+    },
+    Data {
+        key: Key,
+        value: Vec<u8>,
+    },
+    Str {
+        key: Key,
+        value: String,
+    },
+    Nil {
+        key: Key,
+    },
+}
+
+/// A utility method to extract Key Value pairs from a [provenance_log::Log]
+pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
+    let mut vi = log.verify();
+    let (_, _, mut kvp) = vi.next().ok_or::<Error>(PlogError::NoFirstEntry.into())??;
+
+    let vlad_key_value = kvp
+        .get("/vlad/key")
+        .ok_or::<Error>(PlogError::NoVladKey.into())?;
+    let vlad_key: Multikey = try_extract(&vlad_key_value)
+        // or InvalidVMValue
+        .ok_or::<Error>(PlogError::InvalidVMValue.into())?;
+
+    for ret in vi {
+        match ret {
+            Ok((_, _, ref pairs)) => kvp = pairs.clone(),
+            Err(e) => tracing::debug!("verify failed: {}", e.to_string()),
+        }
+    }
+
+    let vlad_encoded = EncodedVlad::new(Base::Base32Z, log.vlad.clone()).to_string();
+    let vlad_verified = log.vlad.verify(&vlad_key).is_ok();
+
+    let fingerprint = vlad_key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
+    let ef = EncodedMultihash::new(Base::Base32Z, fingerprint).to_string();
+
+    let kvp_data = kvp
+        .iter()
+        .map(|(k, val)| -> Result<DisplayData, Error> {
+            let value = if let Some(codec) = get_codec_from_plog_value(val) {
+                let v = kvp
+                    .get(k.as_str())
+                    .ok_or::<Error>(PlogError::NoKeyPath.into())?;
+                match codec {
+                    Codec::Multikey => {
+                        let key: Multikey =
+                            try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
+                        let fingerprint = key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
+                        let ef = EncodedMultihash::new(Base::Base32Z, fingerprint).to_string();
+                        DisplayData::Multikey {
+                            key: k.clone(),
+                            codec_type: codec.into(),
+                            codec: key.codec().to_string(),
+                            fingerprint: ef,
+                        }
+                    }
+                    Codec::Vlad => {
+                        let vlad: Vlad =
+                            try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
+                        DisplayData::Vlad {
+                            codec_type: "Vlad",
+                            encoded: EncodedVlad::new(Base::Base32Z, vlad).to_string(),
+                        }
+                    }
+                    Codec::ProvenanceLogScript => {
+                        let script: Script =
+                            try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
+                        DisplayData::Script {
+                            key: k.clone(),
+                            codec_type: "Script",
+                            length: script.as_ref().len(),
+                        }
+                    }
+                    Codec::Cidv1 | Codec::Cidv2 | Codec::Cidv3 => {
+                        let cid: Cid =
+                            try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
+                        DisplayData::Cid {
+                            key: k.clone(),
+                            codec: cid.codec().to_string(),
+                            encoded: EncodedCid::new(Base::Base32Z, cid).to_string(),
+                            codec_type: "Cid",
+                        }
+                    }
+                    _ => DisplayData::Str {
+                        key: k.clone(),
+                        value: codec.to_string(),
+                    },
+                }
+            } else {
+                match val {
+                    LogValue::Data(v) => DisplayData::Data {
+                        key: k.clone(),
+                        value: v.to_vec(),
+                    },
+                    LogValue::Str(s) => DisplayData::Str {
+                        key: k.clone(),
+                        value: s.to_string(),
+                    },
+                    _ => DisplayData::Nil { key: k.clone() },
+                }
+            };
+            Ok(value)
+        })
+        .collect::<Result<Vec<DisplayData>, Error>>()?;
+
+    let display_data = DisplayData::ReturnValue {
+        vlad: VladDetails {
+            vlad: log.vlad.clone(),
+            encoded: vlad_encoded,
+            verified: vlad_verified,
+            key: vlad_key,
+            encoded_fingerprint: ef,
+        },
+        entries_count: log.entries.len(),
+        kvp_data,
+    };
+
+    Ok(display_data)
+}
+
+/// Utility method to extract a [Codec] from a [provenance_log::LogValue]
+fn get_codec_from_plog_value(value: &LogValue) -> Option<Codec> {
+    match value {
+        LogValue::Data(v) => Codec::try_from(v.as_slice()).ok(),
+        LogValue::Str(s) => Codec::try_from(s.as_str()).ok(),
         _ => None,
     }
 }

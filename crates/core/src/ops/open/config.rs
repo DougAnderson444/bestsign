@@ -107,9 +107,12 @@ impl NewLogBuilder {
     }
 
     /// Add a UseStr param Op as an additional op
-    pub fn with_use_str(&mut self, params: UseStr) -> &mut Self {
-        self.additional_ops.push(params.into());
-        self
+    pub fn with_use_str(
+        &mut self,
+        params: UseStr,
+    ) -> Result<&mut Self, Box<dyn std::error::Error>> {
+        self.additional_ops.push(params.try_into()?);
+        Ok(self)
     }
 
     /// Add a CidGen param Op as an additional op

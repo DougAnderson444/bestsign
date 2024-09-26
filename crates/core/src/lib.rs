@@ -12,4 +12,4 @@ pub use multisig::Multisig;
 /// Export provenance log Script
 pub use provenance_log::{Key, Log, Script};
 
-mod utils;
+pub mod utils;

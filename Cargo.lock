@@ -180,10 +180,16 @@ dependencies = [
  "console_error_panic_hook",
  "getrandom",
  "js-sys",
- "multikey 1.0.7 (git+https://github.com/cryptidtech/multikey.git)",
+ "multibase",
+ "multicid",
+ "multihash",
+ "multikey",
  "multitrait",
+ "multiutil",
+ "provenance-log",
  "serde",
  "serde-wasm-bindgen",
+ "serde_cbor",
  "tracing",
  "tracing-subscriber",
  "tracing-wasm",
@@ -200,7 +206,7 @@ dependencies = [
  "multicid",
  "multicodec",
  "multihash",
- "multikey 1.0.7 (git+https://github.com/cryptidtech/multikey.git)",
+ "multikey",
  "multisig",
  "multiutil",
  "provenance-log",
@@ -386,10 +392,10 @@ checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 [[package]]
 name = "comrade-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/DougAnderson444/comrade.git#4fbd5b6c87c034ecf320b4e11cfdece50562b370"
+source = "git+ssh://git@github.com/DougAnderson444/comrade.git#93af5e6c76ef212bfe4be026965255fefd525b16"
 dependencies = [
  "multihash",
- "multikey 1.0.7 (git+https://github.com/DougAnderson444/multikey.git?branch=switch-chacha20)",
+ "multikey",
  "multisig",
  "multiutil",
  "parking_lot",
@@ -860,9 +866,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.158"
+version = "0.2.159"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
+checksum = "561d97a539a36e26a9a5fad1ea11a3039a67714694aaa379433e580854bc3dc5"
 
 [[package]]
 name = "libm"
@@ -953,7 +959,7 @@ dependencies = [
  "multibase",
  "multicodec",
  "multihash",
- "multikey 1.0.7 (git+https://github.com/cryptidtech/multikey.git)",
+ "multikey",
  "multisig",
  "multitrait",
  "multiutil",
@@ -997,37 +1003,6 @@ dependencies = [
  "thiserror",
  "typenum",
  "unsigned-varint",
-]
-
-[[package]]
-name = "multikey"
-version = "1.0.7"
-source = "git+https://github.com/DougAnderson444/multikey.git?branch=switch-chacha20#0335c53c571ffae7269eae8f8d180b79fd58a332"
-dependencies = [
- "bcrypt-pbkdf",
- "blsful",
- "chacha20",
- "ed25519-dalek",
- "elliptic-curve",
- "hex",
- "k256",
- "multibase",
- "multicodec",
- "multihash",
- "multisig",
- "multitrait",
- "multiutil",
- "poly1305",
- "rand",
- "sec1",
- "serde",
- "ssh-encoding",
- "ssh-key",
- "thiserror",
- "typenum",
- "unsigned-varint",
- "vsss-rs 3.4.0",
- "zeroize",
 ]
 
 [[package]]
@@ -1107,7 +1082,7 @@ dependencies = [
  "bestsign-core",
  "console_error_panic_hook",
  "getrandom",
- "multikey 1.0.7 (git+https://github.com/cryptidtech/multikey.git)",
+ "multikey",
  "rand",
  "seed-keeper-core",
  "serde",
@@ -1378,7 +1353,7 @@ dependencies = [
  "multicid",
  "multicodec",
  "multihash",
- "multikey 1.0.7 (git+https://github.com/cryptidtech/multikey.git)",
+ "multikey",
  "multisig",
  "multitrait",
  "multiutil",
@@ -1445,9 +1420,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0884ad60e090bf1345b93da0a5de8923c93884cd03f40dfcfddd3b4bee661853"
+checksum = "355ae415ccd3a04315d3f8246e86d67689ea74d88d915576e1589a351062a13b"
 dependencies = [
  "bitflags",
 ]

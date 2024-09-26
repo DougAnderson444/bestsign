@@ -9,6 +9,10 @@ pub enum Error {
     #[error(transparent)]
     Update(#[from] UpdateError),
 
+    /// Plog operation errors
+    #[error(transparent)]
+    Plog(#[from] PlogError),
+
     /// Multikey error
     #[error(transparent)]
     Multikey(#[from] multikey::Error),
@@ -56,4 +60,43 @@ pub enum UpdateError {
     /// No last entry
     #[error("No last entry")]
     NoLastEntry,
+}
+
+/// Plog errors
+#[derive(Clone, Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum PlogError {
+    /// An incorrect key-path
+    #[error("Invalid key-path")]
+    InvalidKeyPath,
+    /// Invalid file params
+    #[error("Invalid file params")]
+    InvalidFileParams,
+    /// Invalid key params
+    #[error("Invalid key params")]
+    InvalidKeyParams,
+    /// An incorrect value type was encountered
+    #[error("Invalid WACC value type")]
+    InvalidVMValue,
+    /// No p.log command
+    #[error("No p.log command")]
+    NoCommand,
+    /// No first entry
+    #[error("P.log missing first entry")]
+    NoFirstEntry,
+    /// No vlad key in the first entry
+    #[error("P.log missing VLAD verification key in first entry")]
+    NoVladKey,
+    /// No input file given
+    #[error("No input file given")]
+    NoInputFile,
+    /// No key-path specified
+    #[error("No key-path specified")]
+    NoKeyPath,
+    /// No codec specified
+    #[error("No codec specified")]
+    NoCodec,
+    /// No string value given
+    #[error("No string value given")]
+    NoStringValue,
 }

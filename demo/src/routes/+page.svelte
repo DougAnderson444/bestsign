@@ -1,6 +1,7 @@
 <script lang="js">
 	import Wallet from '$lib/Wallet.svelte';
-	import Log from '$lib/Log.svelte';
+	import CreateLog from '$lib/components/CreateLog.svelte';
+	import UpdateLog from '$lib/components/UpdateLog.svelte';
 
 	/** @type {boolean} Indicates if the wallet has been created */
 	let walletCreated = false;
@@ -17,6 +18,9 @@
 	 */
 	let prove;
 
+	/** @type {Uint8Array} The created ProvenanceLog instance */
+	let log;
+
 	/**
 	 * Handles the wallet creation event
 	 * @param {Object} wallet - The created wallet instance
@@ -28,10 +32,22 @@
 		prove = wallet.prove.bind(wallet);
 		walletCreated = true;
 	}
+
+	/**
+	 * Handles the log creation event
+	 * @param {Object} event - The log creation event
+	 * @param {ProvenanceLog} event.detail.provenanceLog - The created ProvenanceLog instance
+	 * @param {string} event.detail.displayData - The display data of the created ProvenanceLog
+	 */
+	function handleLogCreated(event) {
+		log = event.detail.log;
+	}
 </script>
 
 {#if !walletCreated}
 	<Wallet bind:walletCreated {handleWalletCreated} />
+{:else if !log}
+	<CreateLog {get_key} {prove} on:logCreated={handleLogCreated} />
 {:else}
-	<Log {get_key} {prove} />
+	<UpdateLog {log} {get_key} {prove} />
 {/if}
