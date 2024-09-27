@@ -95,7 +95,7 @@ pub enum DisplayData {
         kvp_data: Vec<DisplayData>,
     },
     Multikey {
-        key: Key,
+        key_path: Key,
         codec_type: &'static str,
         codec: String,
         fingerprint: String,
@@ -105,26 +105,26 @@ pub enum DisplayData {
         encoded: String,
     },
     Script {
-        key: Key,
+        key_path: Key,
         codec_type: &'static str,
         length: usize,
     },
     Cid {
-        key: Key,
+        key_path: Key,
         codec: String,
         encoded: String,
         codec_type: &'static str,
     },
     Data {
-        key: Key,
+        key_path: Key,
         value: Vec<u8>,
     },
     Str {
-        key: Key,
+        key_path: Key,
         value: String,
     },
     Nil {
-        key: Key,
+        key_path: Key,
     },
 }
 
@@ -167,7 +167,7 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
                         let fingerprint = key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
                         let ef = EncodedMultihash::new(Base::Base32Z, fingerprint).to_string();
                         DisplayData::Multikey {
-                            key: k.clone(),
+                            key_path: k.clone(),
                             codec_type: codec.into(),
                             codec: key.codec().to_string(),
                             fingerprint: ef,
@@ -177,16 +177,16 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
                         let vlad: Vlad =
                             try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
                         DisplayData::Vlad {
-                            codec_type: "Vlad",
-                            encoded: EncodedVlad::new(Base::Base32Z, vlad).to_string(),
+                            codec_type: codec.into(),
+                            encoded: EncodedVlad::new(Base::Base36Lower, vlad).to_string(),
                         }
                     }
                     Codec::ProvenanceLogScript => {
                         let script: Script =
                             try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
                         DisplayData::Script {
-                            key: k.clone(),
-                            codec_type: "Script",
+                            key_path: k.clone(),
+                            codec_type: codec.into(),
                             length: script.as_ref().len(),
                         }
                     }
@@ -194,28 +194,29 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
                         let cid: Cid =
                             try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
                         DisplayData::Cid {
-                            key: k.clone(),
+                            key_path: k.clone(),
                             codec: cid.codec().to_string(),
                             encoded: EncodedCid::new(Base::Base32Z, cid).to_string(),
-                            codec_type: "Cid",
+                            codec_type: codec.into(),
                         }
                     }
-                    _ => DisplayData::Str {
-                        key: k.clone(),
-                        value: codec.to_string(),
+                    _ => DisplayData::Nil {
+                        key_path: k.clone(),
                     },
                 }
             } else {
                 match val {
                     LogValue::Data(v) => DisplayData::Data {
-                        key: k.clone(),
+                        key_path: k.clone(),
                         value: v.to_vec(),
                     },
                     LogValue::Str(s) => DisplayData::Str {
-                        key: k.clone(),
+                        key_path: k.clone(),
                         value: s.to_string(),
                     },
-                    _ => DisplayData::Nil { key: k.clone() },
+                    _ => DisplayData::Nil {
+                        key_path: k.clone(),
+                    },
                 }
             };
             Ok(value)
@@ -245,3 +246,6 @@ fn get_codec_from_plog_value(value: &LogValue) -> Option<Codec> {
         _ => None,
     }
 }
+
+// hoh1msjnkzr1e8jsyyayynynyh85dsb88sxzkfkdup5gdwxu4iddxxduafhc3m9aonbzab1twpmtj4559pimzyfyfhtx6njddyhj85ar33xs86t1yqt9iixb578cmedebyyxnbtus319gqw1qu1f93q4gxh57fyqepwprfg8mhzesisnm79se38jd which has ___ characters
+// =
