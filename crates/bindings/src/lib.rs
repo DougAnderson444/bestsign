@@ -145,7 +145,6 @@ impl CryptoManager for KeyHandler {
 
         // if Key is "/pubkey" then set the key
         if key.to_string() == DEFAULT_PUBKEY {
-            tracing::debug!("Setting key {}", key.to_string());
             self.key = Some(mk.clone());
         }
         Ok(mk)
@@ -155,8 +154,6 @@ impl CryptoManager for KeyHandler {
     fn prove(&self, mk: &Multikey, data: &[u8]) -> Result<Multisig, bestsign_core::Error> {
         // use the callback to sign the data
         let this = JsValue::NULL;
-
-        tracing::debug!("Request Prove from Bindings");
 
         let args = SignArgs {
             mk: mk.clone(),
@@ -314,8 +311,6 @@ impl ProvenanceLog {
         let pubkey_rust = key_manager
             .get_key(&Key::try_from(DEFAULT_PUBKEY).unwrap())
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-        tracing::info!("Loaded pubkey: {:?}", pubkey_rust);
 
         let config = UpdateConfig::new(Script::Code(Key::default(), unlock), pubkey_rust);
 

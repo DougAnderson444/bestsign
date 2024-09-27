@@ -66,7 +66,6 @@ impl WasmWallet {
     }
 
     pub fn get_mk(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
-        tracing::info!("[multiwallet] get_mk called");
         // deserialize and destructure the args
         let KeyArgs {
             key,
@@ -123,33 +122,24 @@ impl WasmWallet {
 
     /// Genertaes Proof, such as Signature, over the data with the Multikey that corresponds to the given key
     pub fn prove(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
-        //tracing::info!("prove called with {:?}", args);
         // deserialize and destructure the args
         let sign_args: SignArgs = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
 
-        //tracing::info!("sign_args: {:?}", sign_args);
-
         let SignArgs { mk, data } = sign_args;
-
-        tracing::info!("look up mk");
 
         // convert mk to epk
         let attr = mk.attr_view().map_err(into_js_val)?;
 
         let pk = if attr.is_secret_key() {
-            tracing::info!("Secret key found, converting to public key");
             mk.conv_view()
                 .map_err(into_js_val)?
                 .to_public_key()
                 .map_err(into_js_val)?
         } else {
-            tracing::info!("Public key found");
             mk.clone()
         };
 
         let epk = EncodedMultikey::from(pk.clone());
-
-        //tracing::info!("epk: {:?}", epk.to_string());
 
         let (mk, key) = self
             .keys
