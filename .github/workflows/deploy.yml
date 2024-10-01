@@ -1,0 +1,42 @@
+name: Build & Deploy to Cloudflare Pages
+
+on:
+  workflow_dispatch: {}
+  # push:
+  #   branches: ['main']
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: extractions/setup-just@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: "./demo/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd demo
+          npm ci
+        
+      - name: Build SvelteKit project
+        env:
+          BASE_PATH: ${{ env.BASE_PATH }}
+          VITE_BASE: ${{ env.VITE_BASE }}
+        run: just build
+        
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'bestsign'
+          directory: '.svelte-kit/cloudflare'
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
