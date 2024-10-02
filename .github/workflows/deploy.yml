@@ -49,5 +49,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: 'bestsign'
-          directory: '.svelte-kit/cloudflare'
+          directory: 'demo/.svelte-kit/cloudflare'
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
