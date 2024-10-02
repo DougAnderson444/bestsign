@@ -64,6 +64,15 @@ impl WasmWallet {
         let keys = HashMap::new();
         Ok(WasmWallet { wallet, keys })
     }
+    /// Returns the Encrypted Seed of the Wallet
+    #[wasm_bindgen(js_name = encryptedSeed)]
+    pub fn encrypted_seed(&self) -> Result<JsValue, JsValue> {
+        let encr_seed = self
+            .wallet
+            .encrypted_seed()
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        Ok(serde_wasm_bindgen::to_value(&encr_seed)?)
+    }
 
     pub fn get_mk(&mut self, args: JsValue) -> Result<JsValue, JsValue> {
         // deserialize and destructure the args
