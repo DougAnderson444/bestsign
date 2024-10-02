@@ -10,7 +10,9 @@ const config = {
 		adapter: adapter({
 			// See below for an explanation of these options
 			routes: {
+				// defines routes that will invoke a function
 				include: ['/*'],
+				// defines routes that will not invoke a function
 				exclude: ['<all>']
 			}
 		})
