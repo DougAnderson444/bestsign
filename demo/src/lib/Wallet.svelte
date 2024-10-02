@@ -2,6 +2,12 @@
 	import { default as wasm, WasmWallet } from 'multiwallet-bindings';
 	import { onMount } from 'svelte';
 
+	/** @type {string} Key to store encrypted seed in local storage */
+	const KEY_BASE64_SEED = 'encrypted_seed_base64';
+
+	/** @type {string | null} Base64 encoded seed */
+	let b64Seed;
+
 	/** @type {string} User's username */
 	let username = '';
 
@@ -35,6 +41,10 @@
 	onMount(async () => {
 		try {
 			await wasm();
+
+			// check for b64seed in local storage
+			b64Seed = localStorage.getItem(KEY_BASE64_SEED);
+
 			isWasmLoaded = true;
 		} catch (e) {
 			error = 'Failed to load WASM. Please refresh the page and try again.';

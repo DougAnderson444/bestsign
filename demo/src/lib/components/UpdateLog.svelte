@@ -4,6 +4,7 @@
 	import KeyValuePairInput from './KeyValuePairInput.svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';
+	import Header from './Header.svelte';
 
 	/**
 	 * The log cbor bytes
@@ -27,6 +28,9 @@
 	/** @type {any} */
 	let displayData = null;
 
+	/** @type {string} - The inital key path to be used in the lock script */
+	let keyPath = '/';
+
 	let lockScript = `check_signature("/recoverykey", "/entry/") ||
 check_signature("/pubkey", "/entry/") ||
 check_preimage("/hash")`;
@@ -42,8 +46,8 @@ push("/entry/proof");`;
 	};
 
 	/** @type {() => void} */
-	let updateScripts = () => {
-		console.error('updateScripts function not initialized');
+	let handleScriptUpdate = () => {
+		console.error('handleScriptUpdate function not initialized');
 	};
 
 	onMount(async () => {
@@ -74,25 +78,25 @@ push("/entry/proof");`;
 			}
 		};
 
-		updateScripts = () => {
-			if (logUpdater) {
-				try {
-					logUpdater.add_lock_script('/', lockScript);
-				} catch (error) {
-					console.error('Error updating lock script:', error);
-					result = `Error updating lock script: ${error}`;
-				}
-				logUpdater.set_unlock(unlockScript);
-				result = 'Scripts updated successfully';
-			}
-		};
-	}
+		handleScriptUpdate = (event) => {
+			const {
+				lock: { keyPath: key_path, script: newLockScript },
+				unlockScript: newUnlockScript
+			} = event.detail;
 
-	function handleScriptUpdate(event) {
-		const { lockScript: newLockScript, unlockScript: newUnlockScript } = event.detail;
-		lockScript = newLockScript;
-		unlockScript = newUnlockScript;
-		updateScripts();
+			keyPath = key_path;
+			lockScript = newLockScript;
+			unlockScript = newUnlockScript;
+
+			try {
+				logUpdater.add_lock_script(keyPath, lockScript);
+			} catch (error) {
+				console.error('Error updating lock script:', error);
+				result = `Error updating lock script: ${error}`;
+			}
+			logUpdater.set_unlock(unlockScript);
+			result = 'Scripts updated successfully';
+		};
 	}
 
 	/**
@@ -103,6 +107,8 @@ push("/entry/proof");`;
 	}
 </script>
 
+<Header />
+
 {#if displayData}
 	<div class="p-6 max-w-2xl mx-auto">
 		<h1 class="text-3xl font-bold mb-6">Your Provenance Log</h1>
@@ -111,12 +117,13 @@ push("/entry/proof");`;
 			on:click={(_) => (showModal = !showModal)}
 			class="mb-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 		>
-			Advanced
+			Edit Lock Scripts
 		</button>
 
 		{#if showModal}
 			<Modal title="Advanced Settings" on:close={() => (showModal = false)}>
 				<ScriptEditor
+					{keyPath}
 					{lockScript}
 					{unlockScript}
 					on:update={handleScriptUpdate}
@@ -128,9 +135,7 @@ push("/entry/proof");`;
 		<div class="mb-6">
 			<h2 class="text-xl font-semibold mb-2">Current Log Data:</h2>
 			<div class="mb-6">
-				<h2 class="text-xl font-semibold mb-2">Verifiable Long Lived Address (VLAD):</h2>
-				<!-- ensure the text wraps, even if it breaks words -->
-
+				<h2 class="text-xl font-semibold mb-2">Verifiable Long-Lived Address (VLAD):</h2>
 				<pre
 					class="whitespace-pre-wrap break-all text-sm bg-neutral-100 p-4 rounded-md
           ">{displayData.ReturnValue.vlad.encoded}</pre>
