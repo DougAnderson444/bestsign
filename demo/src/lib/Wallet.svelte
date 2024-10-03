@@ -32,9 +32,6 @@
 	/** @type {boolean} Indicates if WASM is loaded */
 	let isWasmLoaded = false;
 
-	/** @type {boolean} Indicates if wallet is created */
-	export let walletCreated = false;
-
 	/** @type {Function} Callback function when wallet is created */
 	export let handleWalletCreated;
 
@@ -42,8 +39,11 @@
 		try {
 			await wasm();
 
-			// check for b64seed in local storage
+			// check for seed in local storage, if not null, set encrypted_seed to the value
 			b64Seed = localStorage.getItem(KEY_BASE64_SEED);
+			if (b64Seed) {
+				encrypted_seed = b64Seed;
+			}
 
 			isWasmLoaded = true;
 		} catch (e) {
@@ -65,16 +65,29 @@
 			return;
 		}
 		error = '';
+
 		const credentials = {
 			username,
 			password,
-			encrypted_seed: encrypted_seed || null
+			// if encrypted_seed is not null, decode from base64 accordingly before use in creating wallet
+			encrypted_seed: encrypted_seed
+				? new Uint8Array(
+						atob(encrypted_seed)
+							.split('')
+							.map((c) => c.charCodeAt(0))
+					)
+				: null
 		};
 
 		try {
 			wallet = new WasmWallet(credentials);
+			// save to local storage
+			let encrSeed = wallet.encryptedSeed();
+			let seed = new Uint8Array(encrSeed);
+			b64Seed = btoa(String.fromCharCode(...seed));
+			localStorage.setItem(KEY_BASE64_SEED, b64Seed);
+
 			handleWalletCreated(wallet);
-			walletCreated = true;
 		} catch (e) {
 			error = 'Failed to create wallet. Please check your inputs and try again.';
 		}
@@ -130,7 +143,7 @@
 					: 'bg-gray-400 cursor-not-allowed'}"
 				disabled={!isWasmLoaded}
 			>
-				Create Wallet
+				Unlock
 			</button>
 		</div>
 	</form>

@@ -17,7 +17,12 @@ const config = {
 			}
 		})
 	},
-	preprocess: vitePreprocess()
+	preprocess: vitePreprocess(),
+	vitePlugin: {
+		hot: {
+			preserveLocalState: true
+		}
+	}
 };
 
 export default config;

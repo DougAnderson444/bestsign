@@ -45,7 +45,7 @@
 </script>
 
 {#if !walletCreated}
-	<Wallet bind:walletCreated {handleWalletCreated} />
+	<Wallet {handleWalletCreated} />
 {:else if !log}
 	<CreateLog {get_key} {prove} on:logCreated={handleLogCreated} />
 {:else}
