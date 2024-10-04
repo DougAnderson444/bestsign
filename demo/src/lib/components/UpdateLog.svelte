@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { default as wasm, ProvenanceLog } from 'bestsign-bindings';
+	import { default as wasm, ProvenanceLog } from 'bestsign-core-bindings';
 	import KeyValuePairInput from './KeyValuePairInput.svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';

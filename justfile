@@ -11,9 +11,9 @@ test-core-wasm32-build:
 generate-multiwallet-bindings:
   wasm-pack build ./crates/multiwallet-bindings --target web 
 
-# Generate the web wasm bindings for ./crates/bindings using wasm-pack 
+# Generate the web wasm bindings for ./crates/core-bindings using wasm-pack 
 generate-bindings:
-  wasm-pack build ./crates/bindings --target web
+  wasm-pack build ./crates/core-bindings --target web
 
 # Runs the Svelte Demo
 run-demo: generate-multiwallet-bindings generate-bindings

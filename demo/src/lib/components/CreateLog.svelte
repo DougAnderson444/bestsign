@@ -1,5 +1,5 @@
 <script>
-	import { default as wasm, ProvenanceLogBuilder, ProvenanceLog } from 'bestsign-bindings';
+	import { default as wasm, ProvenanceLogBuilder, ProvenanceLog } from 'bestsign-core-bindings';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';

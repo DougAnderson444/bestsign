@@ -34,7 +34,7 @@
 	"dependencies": {
 		"@multiformats/multiaddr": "^12.3.1",
 		"@peerpiper/peerpiper-browser": "^0.1.2",
-		"bestsign-bindings": "file:../crates/bindings/pkg",
+		"bestsign-core-bindings": "file:../crates/core-bindings/pkg",
 		"multiwallet-bindings": "file:../crates/multiwallet-bindings/pkg"
 	}
 }
