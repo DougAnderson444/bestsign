@@ -2,6 +2,7 @@
 name = "bestsign-core-bindings"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true   # Inherit from workspace
 
 [lib]
 crate-type = ["cdylib"]

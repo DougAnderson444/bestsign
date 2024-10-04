@@ -2,6 +2,7 @@
 name = "bestsign-core"
 version = "0.1.0"
 edition = "2021"
+rust-version.workspace = true # Inherit from workspace
 
 [features]
 wasm = ["getrandom/js"] # needed for CI testing on wasm32-unknown-unknown
