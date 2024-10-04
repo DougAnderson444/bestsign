@@ -2,12 +2,13 @@
 	// Connects to a PeerPiper node
 	import { onMount } from 'svelte';
 	import * as peerpiper from '@peerpiper/peerpiper-browser';
+	import { resolveDnsaddr } from '$lib/utils/index.js';
 
 	/**
-	 * The address of the peer to connect to
+	 * The dnsaddr of the peer to connect to
 	 * @type {string}
 	 */
-	export let dialAddr;
+	export let dialAddr = '';
 
 	let errorConnecting = null;
 	let connectingState = 'idle';
@@ -23,8 +24,15 @@
 	});
 
 	// When the user input Enters the dialAddr, we will connect to the peer using connect
-	function handleConnect(evt) {
+	async function handleConnect(evt) {
 		connectingState = 'connecting...';
+
+		// assert the dialAddr is not empty
+		if (!dialAddr) {
+			errorConnecting = 'Please enter a valid Multiaddr';
+			connectingState = 'idle';
+			return;
+		}
 
 		// handle events
 		const onEvent = async (evt) => {
@@ -32,8 +40,9 @@
 		};
 
 		try {
-			console.log('Connecting to', dialAddr);
-			peerpiper.connect(dialAddr, onEvent);
+			const dialAddrs = await resolveDnsaddr(dialAddr);
+			console.log('Connecting to', dialAddrs);
+			peerpiper.connect(dialAddrs, onEvent);
 			connectingState = 'connected';
 		} catch (error) {
 			console.error(error);
