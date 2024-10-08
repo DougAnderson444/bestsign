@@ -4,15 +4,28 @@
 	import Connect from '$lib/components/Connect.svelte';
 	import Disconnect from '$lib/components/graphics/Disconnected.svelte';
 	import Modal from './Modal.svelte';
+	import { logStore, vladStore, piperStore } from '$lib/stores.js';
 
 	/** @type {boolean} */
 	let showModal = false;
 
 	let dialAddr = '/dnsaddr/peerpiper.io';
 
+	/** @type {peerpiper.PeerPiper} - The peerpiper instance */
+	export let piper;
+
+	/**
+	 * The Root CID to persist
+	 * @type {Uint8Array}
+	 */
+	export let rootCID;
+
+	export let peer_id;
+
 	function toggleModal() {
 		showModal = !showModal;
 	}
+	onMount(async () => {});
 </script>
 
 <button
@@ -23,8 +36,8 @@
 	<Disconnect />
 </button>
 
-{#if showModal}
+{#if showModal && piper}
 	<Modal title="Connection Settings" on:close={toggleModal}>
-		<Connect {dialAddr} />
+		<Connect {dialAddr} {piper} {rootCID} bind:peer_id />
 	</Modal>
 {/if}

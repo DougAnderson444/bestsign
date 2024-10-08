@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import * as peerpiper from '@peerpiper/peerpiper-browser';
 	import { resolveDnsaddr } from '$lib/utils/index.js';
+	import { logStore, vladStore, piperStore } from '$lib/stores.js';
 
 	/**
 	 * The dnsaddr of the peer to connect to
@@ -10,18 +11,19 @@
 	 */
 	export let dialAddr = '';
 
+	/** @type {string | null} - The error message, if any */
 	let errorConnecting = null;
+	/** @type {string} - The state of the connection */
 	let connectingState = 'idle';
 
-	onMount(async () => {
-		try {
-			await peerpiper.default();
-		} catch (error) {
-			console.error(error);
-			errorConnecting = error;
-			connectingState = 'error';
-		}
-	});
+	/** @type {peerpiper.PeerPiper} - The peerpiper instance */
+	export let piper;
+
+	/** @type {Uint8Array} - The root CID bytes */
+	export let rootCID;
+
+	/** @type {string} - The peer_id of the peer we are connected to */
+	export let peer_id;
 
 	// When the user input Enters the dialAddr, we will connect to the peer using connect
 	async function handleConnect(evt) {
@@ -37,12 +39,22 @@
 		// handle events
 		const onEvent = async (evt) => {
 			console.log('Event Happened:', evt);
+			// if the event is a new connection, we will set the peer_id
+			//{
+			//    "tag": "new-connection",
+			//    "val": {
+			//        "peer": "12D3KooWSsrJqCDVunhDq3bV6LGSVE2f1i4xbE47483jJTPgbTED"
+			//    }
+			//}
+			if (evt.tag === 'new-connection') {
+				peer_id = evt.val.peer;
+			}
 		};
 
 		try {
 			const dialAddrs = await resolveDnsaddr(dialAddr);
 			console.log('Connecting to', dialAddrs);
-			peerpiper.connect(dialAddrs, onEvent);
+			piper.connect(dialAddrs, onEvent);
 			connectingState = 'connected';
 		} catch (error) {
 			console.error(error);

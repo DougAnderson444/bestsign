@@ -321,7 +321,11 @@ mod tests {
         tracing::debug!("Entries: {:#?}", plog.entries);
 
         // the entry.vlad is the pubkey against the vlad.nonce as a signature, with the first lock script as the data signed
-        //
+
+        // show vlad byte legth
+        let vlad_bytes: Vec<u8> = plog.vlad.clone().into();
+        tracing::debug!("Vlad [{} bytes]: {:#?}", vlad_bytes.len(), plog.vlad);
+
         // 1. Get vlad_key from plog first entry
         let verify_iter = &mut plog.verify();
 

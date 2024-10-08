@@ -1,10 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
-	import { default as wasm, ProvenanceLog } from 'bestsign-core-bindings';
+	import { default as bestSignWasm, ProvenanceLog } from 'bestsign-core-bindings';
+	import * as peerpiper from '@peerpiper/peerpiper-browser';
 	import KeyValuePairInput from './KeyValuePairInput.svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';
 	import Header from './Header.svelte';
+	// persst the log using a Svelte store
+	import { logStore, vladStore, piperStore } from '$lib/stores.js';
 
 	/**
 	 * The log cbor bytes
@@ -21,6 +24,16 @@
 	 * @type {(key: string, data: Uint8Array) => Uint8Array}
 	 */
 	export let prove;
+
+	/** @type {peerpiper.PeerPiper} - The peerpiper instance */
+	let piper;
+
+	// the root CID bytes
+	/** @type {Uint8Array} - The root CID bytes */
+	export let rootCID;
+
+	/** @type {string|undefined} - The peer_id of the peer we are connected to */
+	let peer_id;
 
 	/** @type {Array<{ key: string, value: string }>} */
 	let keyValuePairs = [];
@@ -51,7 +64,16 @@ push("/entry/proof");`;
 	};
 
 	onMount(async () => {
-		await wasm();
+		try {
+			await bestSignWasm();
+			await peerpiper.default();
+			let promise = new peerpiper.PeerPiper('peerpiper');
+			piper = await promise;
+			console.log('piper:', piper);
+		} catch (error) {
+			console.error(error);
+			return;
+		}
 		initializeLog();
 	});
 
@@ -61,7 +83,43 @@ push("/entry/proof");`;
 			return;
 		}
 		const logUpdater = new ProvenanceLog(log, unlockScript, get_key, prove);
-		displayData = logUpdater.plog();
+		displayData = logUpdater.display();
+
+		console.log('UpdateLog displayData:', displayData);
+
+		// set vladStore to the vlad bytes of the log, displayData.ReturnValue.vlad.bytes
+		vladStore.set(displayData.ReturnValue.vlad.bytes);
+
+		// function to serialize and store the log with each update
+		const save = async () => {
+			$logStore = logUpdater.serialize();
+
+			let command = { action: 'System', Put: { bytes: Array.from(new Uint8Array($logStore)) } };
+
+			// make an entriely new object copy with its own memory
+			let cmd = JSON.parse(JSON.stringify(command));
+
+			console.log('Command:', cmd);
+			// TODO: Figure out why the Errors don't propagate back up here. It gets stuck in wasm-bindgen
+			try {
+				rootCID = await piper.command(cmd);
+				console.log('Content Identifier bytes:', rootCID);
+			} catch (error) {
+				console.error('Error saving log:', error);
+			}
+			// Put in the DHT, if peer_id.
+			if ($vladStore && peer_id) {
+				putRecord($vladStore, rootCID);
+			}
+
+			// if peer_id, also do a PeerRequest to pin the serialized plog data
+			if ($logStore && peer_id) {
+				console.log('Making PeerRequest');
+				peerRequest($logStore, peer_id);
+			}
+		};
+
+		save();
 
 		updateLog = () => {
 			try {
@@ -70,7 +128,11 @@ push("/entry/proof");`;
 				}
 
 				logUpdater.update();
-				displayData = logUpdater.plog();
+				displayData = logUpdater.display();
+
+				// save the log
+				save();
+
 				result = `Log updated successfully ${displayData}`;
 			} catch (error) {
 				console.error('Error updating log:', error);
@@ -100,6 +162,54 @@ push("/entry/proof");`;
 	}
 
 	/**
+	 * Put a record in the DHT
+	 * @param {Uint8Array} vladBytes - The VLAD bytes
+	 * @param {Uint8Array} cidBytes - The CID bytes
+	 */
+	async function putRecord(vladBytes, cidBytes) {
+		console.log('putRecord:', vladBytes, cidBytes);
+		// Put in DHT (PutRecord) Key is VLAD, Value is CID
+		let put = {
+			action: 'PutRecord',
+			key: Array.from(new Uint8Array(vladBytes)),
+			value: Array.from(new Uint8Array(cidBytes))
+		};
+
+		try {
+			console.log('PutRecord:', put);
+			await piper.command(put);
+		} catch (e) {
+			console.error(e);
+		}
+	}
+
+	/**
+	 * Request a peer pin our plog data using PeerRequest
+	 * @param {Uint8Array} request - The bytes
+	 * @param {string} peer_id - The peer_id of the peer we are connected to
+	 */
+	async function peerRequest(request, peer_id) {
+		if (!peer_id) {
+			console.error('peer_id is required to make a PeerRequest');
+			return;
+		}
+		console.log('peerRequest:', request, peer_id);
+		// Put in DHT (PutRecord) Key is VLAD, Value is CID
+		let peerRequest = {
+			action: 'PeerRequest',
+			request: Array.from(new Uint8Array(request)),
+			peer_id
+		};
+
+		try {
+			console.log('PeerRequest:', peerRequest);
+			let response = await piper.command(peerRequest);
+			console.log('PeerResponse:', response);
+		} catch (e) {
+			console.error(e);
+		}
+	}
+	/**
 	 * @param {CustomEvent<{ key: string, value: string }[]>} event
 	 */
 	function handleKeyValuePairsUpdate(event) {
@@ -107,7 +217,7 @@ push("/entry/proof");`;
 	}
 </script>
 
-<Header />
+<Header {piper} {rootCID} bind:peer_id />
 
 {#if displayData}
 	<div class="p-6 max-w-2xl mx-auto">

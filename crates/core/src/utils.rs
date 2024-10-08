@@ -79,11 +79,10 @@ where
 /// Vlad details
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VladDetails {
-    pub vlad: Vlad,
+    pub value: Vlad,
+    pub bytes: Vec<u8>,
     pub encoded: String,
     pub verified: bool,
-    pub key: Multikey,
-    pub encoded_fingerprint: String,
 }
 
 /// Utility enum to hold all possible display data types
@@ -103,6 +102,7 @@ pub enum DisplayData {
     Vlad {
         codec_type: &'static str,
         encoded: String,
+        bytes: Vec<u8>,
     },
     Script {
         key_path: Key,
@@ -176,9 +176,11 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
                     Codec::Vlad => {
                         let vlad: Vlad =
                             try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
+                        let bytes: Vec<u8> = vlad.clone().into();
                         DisplayData::Vlad {
                             codec_type: codec.into(),
                             encoded: EncodedVlad::new(Base::Base36Lower, vlad).to_string(),
+                            bytes,
                         }
                     }
                     Codec::ProvenanceLogScript => {
@@ -225,11 +227,10 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
 
     let display_data = DisplayData::ReturnValue {
         vlad: VladDetails {
-            vlad: log.vlad.clone(),
+            value: log.vlad.clone(),
+            bytes: log.vlad.clone().into(),
             encoded: vlad_encoded,
             verified: vlad_verified,
-            key: vlad_key,
-            encoded_fingerprint: ef,
         },
         entries_count: log.entries.len(),
         kvp_data,
@@ -246,6 +247,3 @@ fn get_codec_from_plog_value(value: &LogValue) -> Option<Codec> {
         _ => None,
     }
 }
-
-// hoh1msjnkzr1e8jsyyayynynyh85dsb88sxzkfkdup5gdwxu4iddxxduafhc3m9aonbzab1twpmtj4559pimzyfyfhtx6njddyhj85ar33xs86t1yqt9iixb578cmedebyyxnbtus319gqw1qu1f93q4gxh57fyqepwprfg8mhzesisnm79se38jd which has ___ characters
-// =

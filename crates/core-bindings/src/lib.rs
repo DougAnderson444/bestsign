@@ -323,12 +323,26 @@ impl ProvenanceLog {
 
     /// Get a structured representation of the Plog for display
     #[wasm_bindgen]
-    pub fn plog(&self) -> Result<JsValue, JsValue> {
+    pub fn display(&self) -> Result<JsValue, JsValue> {
         let display_data =
             get_display_data(&self.log).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         serde_wasm_bindgen::to_value(&display_data)
             .map_err(|e| JsValue::from_str(&format!("Failed to serialize display data: {}", e)))
+    }
+
+    /// Serializ the Plog for export to JavaScript
+    #[wasm_bindgen]
+    pub fn serialize(&self) -> Result<JsValue, JsValue> {
+        let log_cbor = serde_cbor::to_vec(&self.log).map_err(|e| {
+            tracing::error!("Error serializing log to CBOR: {}", e);
+            JsValue::from_str(&e.to_string())
+        })?;
+
+        // use js_sys
+        let log_js = js_sys::Uint8Array::from(log_cbor.as_slice()).into();
+
+        Ok(log_js)
     }
 
     // Add a Key Value (String) to the log
