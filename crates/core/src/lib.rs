@@ -6,8 +6,11 @@ pub use error::Error;
 pub mod ops;
 pub use ops::open::Codec;
 
+pub use multicid::Vlad;
 pub use multikey::Multikey;
 pub use multisig::Multisig;
+
+pub use serde_cbor;
 
 /// Export provenance log Script
 pub use provenance_log::{Key, Log, Script};

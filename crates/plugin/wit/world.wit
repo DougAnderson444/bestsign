@@ -1,0 +1,34 @@
+package component:extension@0.1.0;
+
+interface types {
+    record message {
+        topic: string,
+        peer: string,
+        data: list<u8>
+    }
+
+    variant error {
+        /// An error that occurred handling a message
+        handler-error(string),
+
+        /// An input output error 
+        io-error(string)
+    }
+}
+
+interface handlers {
+    use types.{message, error};
+    /// Handle a message from the world. Returns a string response or error
+    handle-message: func(msg: message) -> result<string, error>;
+
+    /// Handles inbound requests with the given bytes 
+    /// Responds with a list of bytes or an error
+    handle-request: func(data: list<u8>) -> result<list<u8>, error>;
+}
+
+/// An example world for the component to target.
+world extension-world {
+    
+    /// Export the handlers for the extension
+    export handlers;
+}
