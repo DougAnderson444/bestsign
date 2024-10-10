@@ -64,7 +64,9 @@ impl Guest for Component {
                         .open(&vlad.encoded)
                         .map_err(|e| Error::IoError(e.to_string()))?;
 
-                    writeln!(file, "{:?}", data).map_err(|e| Error::IoError(e.to_string()))?;
+                    // write the binary data
+                    file.write_all(&data)
+                        .map_err(|e| Error::IoError(e.to_string()))?;
 
                     println!("Vlad is verified and saved to disk");
                     // return 1 for true
