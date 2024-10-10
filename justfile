@@ -15,10 +15,19 @@ generate-multiwallet-bindings:
 generate-bindings:
   wasm-pack build ./crates/core-bindings --target web
 
+# for each dir in crates which has a `wit` directory in it, AND has src/bindings.rs, build it
+build-wits:
+ for dir in crates/*; do \
+    if ([ -d $dir/wit ] && [ -f $dir/src/bindings.rs ]); then \
+     cargo component build --manifest-path=$dir/Cargo.toml; \
+     cargo component build --manifest-path=$dir/Cargo.toml --release; \
+   fi \
+ done
+
 # Runs the Svelte Demo
-run-demo: generate-multiwallet-bindings generate-bindings
+run-demo: generate-multiwallet-bindings generate-bindings build-wits
   cd demo && npm run dev -- --open
 
 # Build for production 
-build: generate-multiwallet-bindings generate-bindings
+build: generate-multiwallet-bindings generate-bindings build-wits
   cd demo && npm run build
