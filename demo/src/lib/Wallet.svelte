@@ -23,12 +23,6 @@
 	/** @type {string} Error message to display */
 	let error = '';
 
-	/** @type {Function | null} Function to get the Multikey */
-	let get_key = null;
-
-	/** @type {Function | null} Function to prove the Multikey over given data */
-	let prove = null;
-
 	/** @type {boolean} Indicates if WASM is loaded */
 	let isWasmLoaded = false;
 
