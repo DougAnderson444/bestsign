@@ -4,14 +4,13 @@
 	import Connect from '$lib/components/Connect.svelte';
 	import Disconnect from '$lib/components/graphics/Disconnected.svelte';
 	import Modal from './Modal.svelte';
-	import { logStore, vladStore, piperStore } from '$lib/stores.js';
+	import { logStore, vladStore } from '$lib/stores.js';
 
 	/** @type {boolean} */
 	let showModal = false;
 
 	let dialAddr = '/dnsaddr/peerpiper.io';
 
-	/** @type {peerpiper.PeerPiper} - The peerpiper instance */
 	export let piper;
 
 	/**

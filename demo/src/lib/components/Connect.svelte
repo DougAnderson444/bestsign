@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import * as peerpiper from '@peerpiper/peerpiper-browser';
 	import { resolveDnsaddr } from '$lib/utils/index.js';
-	import { logStore, vladStore, piperStore } from '$lib/stores.js';
+	import { logStore, vladStore } from '$lib/stores.js';
 
 	/**
 	 * The dnsaddr of the peer to connect to

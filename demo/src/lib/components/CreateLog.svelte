@@ -1,5 +1,5 @@
 <script>
-	import { default as wasm, ProvenanceLogBuilder, ProvenanceLog } from 'bestsign-core-bindings';
+	import { ProvenanceLogBuilder } from 'bestsign-core-bindings';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';
@@ -29,7 +29,6 @@ push("/entry/proof");`;
 	let keyValuePairs = [];
 
 	onMount(async () => {
-		await wasm();
 		initializeLogBuilder();
 	});
 

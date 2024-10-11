@@ -11,5 +11,3 @@ export const logStore = writable(null);
 // The vlad is a Uint8Array of bytes
 /** @type {Writable<Uint8Array>} */
 export const vladStore = writable(null);
-
-export const piperStore = writable(null);

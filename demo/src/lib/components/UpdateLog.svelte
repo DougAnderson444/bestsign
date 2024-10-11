@@ -1,13 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
-	import { default as bestSignWasm, ProvenanceLog } from 'bestsign-core-bindings';
 	import * as peerpiper from '@peerpiper/peerpiper-browser';
+	import { ProvenanceLog } from 'bestsign-core-bindings';
 	import KeyValuePairInput from './KeyValuePairInput.svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';
 	import Header from './Header.svelte';
 	// persst the log using a Svelte store
-	import { logStore, vladStore, piperStore } from '$lib/stores.js';
+	import { logStore, vladStore } from '$lib/stores.js';
 
 	/**
 	 * The log cbor bytes
@@ -26,11 +26,10 @@
 	export let prove;
 
 	/** @type {peerpiper.PeerPiper} - The peerpiper instance */
-	let piper;
+	export let piper;
 
-	// the root CID bytes
 	/** @type {Uint8Array} - The root CID bytes */
-	export let rootCID;
+	let rootCID;
 
 	/** @type {string|undefined} - The peer_id of the peer we are connected to */
 	let peer_id;
@@ -53,27 +52,13 @@ push("/entry/proof");`;
 
 	let showModal = false;
 
-	/** @type {(evt: Event) => void} */
-	let updateLog = (evt) => {
-		console.error('updateLog function not initialized');
-	};
+	/** @type {(evt: Event) => void|undefined} - The callback function to update the log */
+	let updateLog;
 
-	/** @type {() => void} */
-	let handleScriptUpdate = () => {
-		console.error('handleScriptUpdate function not initialized');
-	};
+	/** @type {undefined|function(CustomEvent<{ lock: { keyPath: string, script: string }, unlockScript: string }>): any} - The callback function to update the lock and unlock scripts */
+	let handleScriptUpdate;
 
 	onMount(async () => {
-		try {
-			await bestSignWasm();
-			await peerpiper.default();
-			let promise = new peerpiper.PeerPiper('peerpiper');
-			piper = await promise;
-			console.log('piper:', piper);
-		} catch (error) {
-			console.error(error);
-			return;
-		}
 		initializeLog();
 	});
 
@@ -104,6 +89,9 @@ push("/entry/proof");`;
 			try {
 				rootCID = await piper.command(cmd);
 				console.log('Content Identifier bytes:', rootCID);
+
+				// also store rootCID in local storage, convert the Uint8Array to a string (base64)
+				localStorage.setItem('rootCID', btoa(String.fromCharCode(...rootCID)));
 			} catch (error) {
 				console.error('Error saving log:', error);
 			}
@@ -280,6 +268,7 @@ push("/entry/proof");`;
 		<div class="mt-6">
 			<button
 				on:click={updateLog}
+				disabled={!updateLog}
 				class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 			>
 				Update Log
