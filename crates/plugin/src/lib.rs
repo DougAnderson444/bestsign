@@ -5,6 +5,7 @@ use std::io::Write;
 use std::{fs::OpenOptions, io::Read as _};
 
 use bindings::{
+    component::extension::peer_piper_commands,
     component::extension::types::{Error, Message},
     exports::component::extension::handlers::Guest,
 };
@@ -98,6 +99,11 @@ fn log_handler(log: &Log, data: &[u8]) -> Result<Vec<u8>, Error> {
                 .map_err(|e| Error::IoError(e.to_string()))?;
 
             println!("Vlad is verified and saved to disk");
+
+            // start providing on the DHT
+            // TODO: Use the Blake3 hash instead of the bytes
+            peer_piper_commands::start_providing(&vlad.bytes);
+
             // return 1 for true
             return Ok(vec![1]);
         } else {

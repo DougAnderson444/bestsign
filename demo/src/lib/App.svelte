@@ -33,6 +33,7 @@
 			await bestSignWasm();
 			await peerpiper.default();
 			let ppPromise = new peerpiper.PeerPiper('peerpiper');
+			// pp is a Promise because we await openingthe IndexedDB in the browser
 			piper = await ppPromise;
 		} catch (error) {
 			console.error(error);

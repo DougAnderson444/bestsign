@@ -6,6 +6,9 @@
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';
 	import Header from './Header.svelte';
+
+	import { peerRequest } from '$lib/utils/bestsign.js';
+
 	// persst the log using a Svelte store
 	import { logStore, vladStore } from '$lib/stores.js';
 
@@ -103,7 +106,7 @@ push("/entry/proof");`;
 			// if peer_id, also do a PeerRequest to pin the serialized plog data
 			if ($logStore && peer_id) {
 				console.log('Making PeerRequest');
-				peerRequest($logStore, peer_id);
+				peerRequest(piper, $logStore, peer_id);
 			}
 		};
 
@@ -171,32 +174,6 @@ push("/entry/proof");`;
 		}
 	}
 
-	/**
-	 * Request a peer pin our plog data using PeerRequest
-	 * @param {Uint8Array} request - The bytes
-	 * @param {string} peer_id - The peer_id of the peer we are connected to
-	 */
-	async function peerRequest(request, peer_id) {
-		if (!peer_id) {
-			console.error('peer_id is required to make a PeerRequest');
-			return;
-		}
-		console.log('peerRequest:', request, peer_id);
-		// Put in DHT (PutRecord) Key is VLAD, Value is CID
-		let peerRequest = {
-			action: 'PeerRequest',
-			request: Array.from(new Uint8Array(request)),
-			peer_id
-		};
-
-		try {
-			console.log('PeerRequest:', peerRequest);
-			let response = await piper.command(peerRequest);
-			console.log('PeerResponse:', response);
-		} catch (e) {
-			console.error(e);
-		}
-	}
 	/**
 	 * @param {CustomEvent<{ key: string, value: string }[]>} event
 	 */

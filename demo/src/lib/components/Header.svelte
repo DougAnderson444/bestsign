@@ -4,6 +4,8 @@
 	import Connect from '$lib/components/Connect.svelte';
 	import Disconnect from '$lib/components/graphics/Disconnected.svelte';
 	import Modal from './Modal.svelte';
+	import FindPlog from './FindPlog.svelte';
+
 	import { logStore, vladStore } from '$lib/stores.js';
 
 	/** @type {boolean} */
@@ -19,6 +21,8 @@
 	 */
 	export let rootCID;
 
+	// string of undef
+	/** @type {string|undefined} - The peer_id of the peer we are connected to */
 	export let peer_id;
 
 	function toggleModal() {
@@ -37,6 +41,9 @@
 
 {#if showModal && piper}
 	<Modal title="Connection Settings" on:close={toggleModal}>
-		<Connect {dialAddr} {piper} {rootCID} bind:peer_id />
+		<Connect {dialAddr} {piper} {rootCID} bind:peer_id>
+			<p>Connected to {peer_id}</p>
+			<FindPlog {piper} />
+		</Connect>
 	</Modal>
 {/if}

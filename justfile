@@ -5,7 +5,7 @@ test-comrade-core:
 test-core-wasm32-build:
   RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo build --target wasm32-unknown-unknown --manifest-path=crates/core/Cargo.toml --features wasm
   # wasi 
-  RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo build --target wasm32-wasi --manifest-path=crates/core/Cargo.toml
+  RUST_LOG=trace RUSTFLAGS="--allow dead_code" cargo build --target wasm32-wasip1 --manifest-path=crates/core/Cargo.toml
 
 # Generate the web wasm bindings for ./crates/multiwallet-bindings using wasm-pack 
 generate-multiwallet-bindings:

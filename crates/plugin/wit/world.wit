@@ -29,8 +29,17 @@ interface handlers {
     handle-request: func(data: list<u8>) -> result<list<u8>, error>;
 }
 
+interface peer-piper-commands {
+
+    /// Tells the DHT to start providing the given key (bytes)
+    start-providing: func(key: list<u8>);
+}
+
 /// An example world for the component to target.
 world extension-world {
+
+    /// Import PeerPiperCommand interface
+    import peer-piper-commands;
     
     /// Export the handlers for the extension
     export handlers;

@@ -13,8 +13,18 @@
 
 	/** @type {string | null} - The error message, if any */
 	let errorConnecting = null;
+
+	/**
+	 * All the possible connection states
+	 */
+	let state = {
+		IDLE: 'Idle',
+		CONNECTING: 'Connecting...',
+		CONNECTED: 'Connected'
+	};
+
 	/** @type {string} - The state of the connection */
-	let connectingState = 'idle';
+	let connectingState = state.IDLE;
 
 	/** @type {peerpiper.PeerPiper} - The peerpiper instance */
 	export let piper;
@@ -22,17 +32,17 @@
 	/** @type {Uint8Array} - The root CID bytes */
 	export let rootCID;
 
-	/** @type {string} - The peer_id of the peer we are connected to */
+	/** @type {string|undefined} - The peer_id of the peer we are connected to */
 	export let peer_id;
 
 	// When the user input Enters the dialAddr, we will connect to the peer using connect
 	async function handleConnect(evt) {
-		connectingState = 'connecting...';
+		connectingState = state.CONNECTING;
 
 		// assert the dialAddr is not empty
 		if (!dialAddr) {
 			errorConnecting = 'Please enter a valid Multiaddr';
-			connectingState = 'idle';
+			connectingState = state.IDLE;
 			return;
 		}
 
@@ -48,14 +58,15 @@
 			//}
 			if (evt.tag === 'new-connection') {
 				peer_id = evt.val.peer;
+				connectingState = state.CONNECTED;
 			}
 		};
 
 		try {
-			const dialAddrs = await resolveDnsaddr(dialAddr);
-			console.log('Connecting to', dialAddrs);
-			piper.connect(dialAddrs, onEvent);
-			connectingState = 'connected';
+			let dialAddrs = dialAddr.startsWith('/dnsaddr/')
+				? await resolveDnsaddr(dialAddr)
+				: [dialAddr];
+			await piper.connect(dialAddrs, onEvent);
 		} catch (error) {
 			console.error(error);
 			errorConnecting = error;
@@ -73,20 +84,20 @@
 				class="p-2 border border-slate-500 rounded"
 				bind:value={dialAddr}
 				placeholder="Enter a Peer's Multiaddr"
-				disabled={connectingState !== 'idle'}
+				disabled={connectingState !== state.IDLE}
 			/>
 			<button
 				class="mt-2 p-2 text-white font-semibold rounded"
-				class:disabled={connectingState === 'connecting...'}
-				class:bg-slate-500={connectingState === 'connecting...'}
-				class:bg-green-500={connectingState === 'connected'}
-				class:bg-blue-500={connectingState === 'idle'}
+				class:disabled={connectingState === state.CONNECTING}
+				class:bg-slate-500={connectingState === state.CONNECTING}
+				class:bg-green-500={connectingState === state.CONNECTED}
+				class:bg-blue-500={connectingState === state.IDLE}
 				on:click={handleConnect}
 			>
 				<!-- Use connectingState to manage the text and disableness of this button -->
-				{#if connectingState === 'connecting...'}
+				{#if connectingState === state.CONNECTING}
 					Connecting...
-				{:else if connectingState === 'connected'}
+				{:else if connectingState === state.CONNECTED}
 					Connected
 				{:else}
 					Connect
@@ -98,3 +109,8 @@
 		</div>
 	</div>
 </div>
+
+<!-- If peer_id, means we are connected to a network node, and we can search for Plogs by Vlad -->
+{#if peer_id}
+	<slot {peer_id} />
+{/if}
