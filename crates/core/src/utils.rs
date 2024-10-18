@@ -147,11 +147,11 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
         }
     }
 
-    let vlad_encoded = EncodedVlad::new(Base::Base32Z, log.vlad.clone()).to_string();
+    let vlad_encoded = EncodedVlad::new(Base::Base36Lower, log.vlad.clone()).to_string();
     let vlad_verified = log.vlad.verify(&vlad_key).is_ok();
 
     let fingerprint = vlad_key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
-    let ef = EncodedMultihash::new(Base::Base32Z, fingerprint).to_string();
+    let ef = EncodedMultihash::new(Base::Base36Lower, fingerprint).to_string();
 
     let kvp_data = kvp
         .iter()
@@ -165,7 +165,7 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
                         let key: Multikey =
                             try_extract(&v).ok_or::<Error>(PlogError::InvalidVMValue.into())?;
                         let fingerprint = key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
-                        let ef = EncodedMultihash::new(Base::Base32Z, fingerprint).to_string();
+                        let ef = EncodedMultihash::new(Base::Base36Lower, fingerprint).to_string();
                         DisplayData::Multikey {
                             key_path: k.clone(),
                             codec_type: codec.into(),
@@ -198,7 +198,7 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
                         DisplayData::Cid {
                             key_path: k.clone(),
                             codec: cid.codec().to_string(),
-                            encoded: EncodedCid::new(Base::Base32Z, cid).to_string(),
+                            encoded: EncodedCid::new(Base::Base36Lower, cid).to_string(),
                             codec_type: codec.into(),
                         }
                     }
@@ -245,5 +245,50 @@ fn get_codec_from_plog_value(value: &LogValue) -> Option<Codec> {
         LogValue::Data(v) => Codec::try_from(v.as_slice()).ok(),
         LogValue::Str(s) => Codec::try_from(s.as_str()).ok(),
         _ => None,
+    }
+}
+
+/// Utility for converting a str slice to Vlad bytes
+pub fn decode_vlad(s: &str) -> Result<Vec<u8>, Error> {
+    let encoded_vlad = EncodedVlad::try_from(s)?;
+
+    let vlad = encoded_vlad.to_inner();
+    Ok(vlad.into())
+}
+
+/// Serialize a Vlad using serde_cbor
+pub fn serialize_vlad(vlad: &Vlad) -> Result<Vec<u8>, Error> {
+    serde_cbor::to_vec(vlad).map_err(Error::Serde)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vlad_from_str() {
+        let vlad_str = "hoh1msjnkzr1e8jsyyayynyny1pfnmk16g9t8fn5szs5acsqzkbjb3gcwumrgfzof9shiztck9t5azx5nytr6adfa76ifdpuqj8bt1ujwopm9ugm4juhyfueak198hdabyyxnbtus319gqw1qu1f93q4gxh57fyqepwprfg8mhzesisnm79se38jd";
+        let vlad_bytes = decode_vlad(vlad_str).unwrap();
+        assert_eq!(vlad_bytes.len(), 115);
+
+        // can convert back into Vlad
+        let vlad = Vlad::try_from(vlad_bytes.as_slice()).unwrap();
+
+        let encoded_vlad = EncodedVlad::new(Base::Base36Lower, vlad).to_string();
+
+        assert_eq!(encoded_vlad, vlad_str);
+    }
+
+    // test whether we can deserialize a decode_vlad
+    #[test]
+    fn test_serialize_vlad() {
+        let vlad_str = "hoh1msjnkzr1e8jsyyayynyny1pfnmk16g9t8fn5szs5acsqzkbjb3gcwumrgfzof9shiztck9t5azx5nytr6adfa76ifdpuqj8bt1ujwopm9ugm4juhyfueak198hdabyyxnbtus319gqw1qu1f93q4gxh57fyqepwprfg8mhzesisnm79se38jd";
+        let vlad_bytes = decode_vlad(vlad_str).unwrap();
+        let vlad = Vlad::try_from(vlad_bytes.as_slice()).unwrap();
+
+        let serialized = serialize_vlad(&vlad).unwrap();
+        assert_eq!(serialized.len(), 115);
+        // do they match?
+        assert_eq!(vlad_bytes, serialized);
     }
 }

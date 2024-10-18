@@ -220,7 +220,7 @@ mod tests {
     // helper codec and encode fn
     fn encode(mk: &Multikey) -> Result<String, Error> {
         let fp = mk.fingerprint_view()?.fingerprint(Codec::Sha3256)?;
-        let ef = EncodedMultihash::new(Base::Base32Z, fp);
+        let ef = EncodedMultihash::new(Base::Base36Lower, fp);
         Ok(ef.to_string())
     }
 

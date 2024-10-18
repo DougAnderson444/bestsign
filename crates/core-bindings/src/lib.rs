@@ -17,6 +17,7 @@ use multibase::Base;
 use multicid::{Cid, EncodedCid, EncodedVlad, Vlad};
 use multihash::EncodedMultihash;
 use multikey::views::Views;
+use multitrait::TryDecodeFrom;
 use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
 use provenance_log::{LogValue, Pairs};
 use serde::{Deserialize, Serialize};
@@ -388,4 +389,13 @@ impl ProvenanceLog {
 
         Ok(())
     }
+}
+
+/// Decodes a Vlad string into bytes
+#[wasm_bindgen]
+pub fn decode_vlad(s: &str) -> Result<JsValue, JsValue> {
+    let bytes: Vec<u8> =
+        bestsign_core::utils::decode_vlad(s).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    Ok(js_sys::Uint8Array::from(bytes.as_slice()).into())
 }

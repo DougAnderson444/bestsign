@@ -2,6 +2,10 @@
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
+    /// Serde error (serde_cbor::Error)
+    #[error(transparent)]
+    Serde(#[from] serde_cbor::Error),
+
     /// Open operation errors
     #[error(transparent)]
     Open(#[from] OpenError),
@@ -28,6 +32,10 @@ pub enum Error {
     /// Generic Error
     #[error("Error: {0}")]
     Generic(String),
+
+    /// Utility conversion error
+    #[error(transparent)]
+    MultiUtil(#[from] multiutil::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

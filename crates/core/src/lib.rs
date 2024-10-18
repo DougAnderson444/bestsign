@@ -6,7 +6,8 @@ pub use error::Error;
 pub mod ops;
 pub use ops::open::Codec;
 
-pub use multicid::Vlad;
+pub use multibase::Base;
+pub use multicid::{EncodedVlad, Vlad};
 pub use multikey::Multikey;
 pub use multisig::Multisig;
 

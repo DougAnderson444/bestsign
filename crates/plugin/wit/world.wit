@@ -8,6 +8,9 @@ interface types {
     }
 
     variant error {
+        /// This plugin does not support the given message data type 
+        unsupported-message-type,
+
         /// An error that occurred handling a message
         handler-error(string),
 
