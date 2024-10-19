@@ -33,7 +33,7 @@
 	"type": "module",
 	"dependencies": {
 		"@multiformats/multiaddr": "^12.3.1",
-		"@peerpiper/peerpiper-browser": "file:../../peerpiper/crates/peerpiper-browser/pkg",
+		"@peerpiper/peerpiper-browser": "^0.1.6",
 		"bestsign-core-bindings": "file:../crates/core-bindings/pkg",
 		"multiwallet-bindings": "file:../crates/multiwallet-bindings/pkg"
 	}
