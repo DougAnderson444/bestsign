@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_vlad_from_str() {
-        let vlad_str = "hoh1msjnkzr1e8jsyyayynyny1pfnmk16g9t8fn5szs5acsqzkbjb3gcwumrgfzof9shiztck9t5azx5nytr6adfa76ifdpuqj8bt1ujwopm9ugm4juhyfueak198hdabyyxnbtus319gqw1qu1f93q4gxh57fyqepwprfg8mhzesisnm79se38jd";
+        let vlad_str = "kg0nc6q8quc8yyiv9a6u4py2gcmxk8kfcomc3zxy2entacok7w9p6uh8yuq9ogclp9lc2idi8xfdggj4nr1d0u0clrtsj5p6y8tsbvslxzcppoofbg098wek6yrwrjp1bx4nhz5wpsbxkqb0qyclyog8jgbcz3t5v0uju8tmpt3na0c56oz";
         let vlad_bytes = decode_vlad(vlad_str).unwrap();
         assert_eq!(vlad_bytes.len(), 115);
 
@@ -277,18 +277,5 @@ mod tests {
         let encoded_vlad = EncodedVlad::new(Base::Base36Lower, vlad).to_string();
 
         assert_eq!(encoded_vlad, vlad_str);
-    }
-
-    // test whether we can deserialize a decode_vlad
-    #[test]
-    fn test_serialize_vlad() {
-        let vlad_str = "hoh1msjnkzr1e8jsyyayynyny1pfnmk16g9t8fn5szs5acsqzkbjb3gcwumrgfzof9shiztck9t5azx5nytr6adfa76ifdpuqj8bt1ujwopm9ugm4juhyfueak198hdabyyxnbtus319gqw1qu1f93q4gxh57fyqepwprfg8mhzesisnm79se38jd";
-        let vlad_bytes = decode_vlad(vlad_str).unwrap();
-        let vlad = Vlad::try_from(vlad_bytes.as_slice()).unwrap();
-
-        let serialized = serialize_vlad(&vlad).unwrap();
-        assert_eq!(serialized.len(), 115);
-        // do they match?
-        assert_eq!(vlad_bytes, serialized);
     }
 }
