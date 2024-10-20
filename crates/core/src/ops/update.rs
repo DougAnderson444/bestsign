@@ -13,8 +13,8 @@ use multihash::mh;
 use multikey::{Multikey, Views as _};
 pub use op_params::OpParams;
 use provenance_log::error::EntryError;
-use provenance_log::Entry;
 use provenance_log::{entry, error::Error as PlogError, Log};
+use provenance_log::{Entry, Lipmaa as _};
 
 use crate::{error::OpenError, ops::traits::CryptoManager, utils, Error};
 
@@ -23,7 +23,7 @@ pub fn update_plog(
     plog: &mut Log,
     config: &UpdateConfig,
     key_manager: &mut impl CryptoManager,
-) -> Result<Entry, crate::Error> {
+) -> Result<(), crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
 
@@ -149,6 +149,18 @@ pub fn update_plog(
             builder = utils::apply_operations(params, &mut builder)?;
             Ok(())
         })?;
+
+    // check current entry for lipmaa longhop, and set lipmaa if needed
+    let curr_seqno = last_entry.seqno() + 1;
+    if curr_seqno.is_lipmaa() {
+        tracing::debug!("Setting lipmaa for seqno: {}", curr_seqno);
+        let lipmaa = curr_seqno.lipmaa();
+        let longhop_entry = plog.seqno(lipmaa)?;
+        builder = builder.with_lipmaa(&longhop_entry.cid());
+    } else {
+        tracing::debug!("No lipmaa for seqno: {}", curr_seqno);
+    }
+
     // finalize the entry building by signing it
     let entry = builder.try_build(|e| {
         // get the serialzied version of the entry with an empty "proof" field
@@ -162,9 +174,9 @@ pub fn update_plog(
     })?;
 
     // try to add the entry to the p.log
-    plog.try_append(&entry)?;
+    plog.try_append(entry)?;
 
-    Ok(entry)
+    Ok(())
 }
 
 #[cfg(test)]
