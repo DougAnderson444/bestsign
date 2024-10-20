@@ -399,3 +399,15 @@ pub fn decode_vlad(s: &str) -> Result<JsValue, JsValue> {
 
     Ok(js_sys::Uint8Array::from(bytes.as_slice()).into())
 }
+
+/// Deserialize the Plog into a human readable format. Same as display(), but no auth needed
+#[wasm_bindgen]
+pub fn deserialize_plog(log: &[u8]) -> Result<JsValue, JsValue> {
+    let log: Log = serde_cbor::from_slice(log)
+        .map_err(|e| JsValue::from_str(&format!("Error deserializing log: {}", e)))?;
+
+    let display_data = get_display_data(&log).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    serde_wasm_bindgen::to_value(&display_data)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize display data: {}", e)))
+}
