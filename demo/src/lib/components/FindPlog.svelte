@@ -1,6 +1,7 @@
 <!-- Svelte component which tries to find a Plog for you on the DHT. -->
 <script>
-	import { decode_vlad } from 'bestsign-core-bindings';
+	import DisplayPlog from './DisplayPlog.svelte';
+	import { decode_vlad, deserialize_plog } from 'bestsign-core-bindings';
 	import * as peerpiper from '@peerpiper/peerpiper-browser';
 	import { peerRequest } from '$lib/utils/bestsign.js';
 
@@ -17,6 +18,12 @@
 	 * @type {Array<string>}
 	 */
 	let providers = [];
+
+	/**
+	 * The Plog displayData
+	 * @type {Uint8Array}
+	 */
+	let displayData;
 
 	// use piper to search the DHT for a Plog and make request for it from a peer.
 	async function findPlog(evt) {
@@ -40,6 +47,16 @@
 			console.log('providers:', providers);
 		} catch (e) {
 			console.error(e);
+		}
+
+		if (providers.length > 0) {
+			// Get the Plog from the first provider
+			let plog_bytes = await getPlogFromProvider(providers[0]);
+
+			if (plog_bytes) {
+				// get details from the plog_bytes
+				displayData = await deserialize_plog(plog_bytes);
+			}
 		}
 	}
 
@@ -89,7 +106,7 @@
 	</div>
 
 	<!-- If providers, list them out -->
-	<div class="flex justify-start my-2">
+	<div class="flex-row justify-start my-2">
 		{#if providers.length > 0}
 			<div class="w-1/2 justify-center">
 				<h2 class="text-xl font-semibold mb-2">Providers</h2>
@@ -102,5 +119,8 @@
 		{:else}
 			<p>No providers found</p>
 		{/if}
+
+		<!-- DisplayPlog if displayData  -->
+		<DisplayPlog {displayData} />
 	</div>
 </div>

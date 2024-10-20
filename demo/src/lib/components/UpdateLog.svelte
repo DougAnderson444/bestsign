@@ -1,11 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
 	import * as peerpiper from '@peerpiper/peerpiper-browser';
-	import { ProvenanceLog } from 'bestsign-core-bindings';
+	import { ProvenanceLog, deserialize_plog } from 'bestsign-core-bindings';
 	import KeyValuePairInput from './KeyValuePairInput.svelte';
 	import ScriptEditor from './ScriptEditor.svelte';
 	import Modal from './Modal.svelte';
 	import Header from './Header.svelte';
+	import DisplayPlog from './DisplayPlog.svelte';
 
 	import { peerRequest } from '$lib/utils/bestsign.js';
 
@@ -66,6 +67,7 @@ push("/entry/proof");`;
 	});
 
 	function initializeLog() {
+		console.log('*** initializeLog ***');
 		if (!get_key || !prove || !log) {
 			console.error('log, get_key and prove must be set to a wallet that provides these functions');
 			return;
@@ -81,6 +83,12 @@ push("/entry/proof");`;
 		// function to serialize and store the log with each update
 		const save = async () => {
 			$logStore = logUpdater.serialize();
+
+			console.log('LogStore:', $logStore);
+
+			// deserialize_plog just to check to ensure it can be deserialized
+			let deserialized = deserialize_plog($logStore);
+			console.log('Deserialized:', deserialized);
 
 			let command = { action: 'System', Put: { bytes: Array.from(new Uint8Array($logStore)) } };
 
@@ -112,9 +120,11 @@ push("/entry/proof");`;
 
 		save();
 
-		updateLog = () => {
+		updateLog = async () => {
 			try {
+				console.log('UpdateLog');
 				for (const { key, value } of keyValuePairs) {
+					console.log('key:', key, 'value:', value);
 					logUpdater.add_string({ key, value });
 				}
 
@@ -122,9 +132,10 @@ push("/entry/proof");`;
 				displayData = logUpdater.display();
 
 				// save the log
-				save();
+				await save();
 
 				result = `Log updated successfully ${displayData}`;
+				keyValuePairs = [];
 			} catch (error) {
 				console.error('Error updating log:', error);
 				result = `Error updating log: ${error}`;
@@ -184,83 +195,23 @@ push("/entry/proof");`;
 
 <Header {piper} {rootCID} bind:peer_id />
 
-{#if displayData}
-	<div class="p-6 max-w-2xl mx-auto">
-		<h1 class="text-3xl font-bold mb-6">Your Provenance Log</h1>
+<DisplayPlog {displayData}>
+	<KeyValuePairInput {keyValuePairs} on:update={handleKeyValuePairsUpdate} />
 
+	<div class="mt-6">
 		<button
-			on:click={(_) => (showModal = !showModal)}
-			class="mb-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+			on:click={updateLog}
+			disabled={!updateLog}
+			class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 		>
-			Edit Lock Scripts
+			Update Log
 		</button>
-
-		{#if showModal}
-			<Modal title="Advanced Settings" on:close={() => (showModal = false)}>
-				<ScriptEditor
-					{keyPath}
-					{lockScript}
-					{unlockScript}
-					on:update={handleScriptUpdate}
-					on:close={() => (showModal = false)}
-				/>
-			</Modal>
-		{/if}
-
-		<div class="mb-6">
-			<h2 class="text-xl font-semibold mb-2">Current Log Data:</h2>
-			<div class="mb-6">
-				<h2 class="text-xl font-semibold mb-2">Verifiable Long-Lived Address (VLAD):</h2>
-				<pre
-					class="whitespace-pre-wrap break-all text-sm bg-neutral-100 p-4 rounded-md
-          ">{displayData.ReturnValue.vlad.encoded}</pre>
-			</div>
-
-			<div class="mb-6">
-				<h2 class="text-xl font-semibold mb-2">Key-Value Pairs:</h2>
-				<ul class="pl-5 mb-4">
-					<!-- Sort the displayData.ReturnValue.kvp_data such that Multikey is shown first, then Str, then Cid -->
-					{#each displayData.ReturnValue.kvp_data.sort((a, b) => {
-						const getPriority = (item) => (item.Multikey ? 0 : item.Str ? 1 : item.Cid ? 2 : 3);
-						return getPriority(a) - getPriority(b);
-					}) as pair}
-						<!-- Only if Multikey key_path is /pubkey --->
-						{#if pair.Multikey && pair.Multikey.key_path === '/pubkey'}
-							<li>{pair.Multikey.key_path}: {pair.Multikey.fingerprint}</li>
-						{/if}
-						{#if pair.Str}
-							<li>{pair.Str.key_path}: {pair.Str.value}</li>
-						{/if}
-						<!-- Only if Cid key_path is not /vlad/cid --->
-						{#if pair.Cid && pair.Cid.key_path !== '/vlad/cid'}
-							<li>{pair.Cid.key_path}: {pair.Cid.encoded}</li>
-						{/if}
-					{/each}
-				</ul>
-			</div>
-		</div>
-
-		<KeyValuePairInput {keyValuePairs} on:update={handleKeyValuePairsUpdate} />
-
-		<div class="mt-6">
-			<button
-				on:click={updateLog}
-				disabled={!updateLog}
-				class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-			>
-				Update Log
-			</button>
-		</div>
-
-		{#if result}
-			<div class="mt-6 p-4 bg-gray-100 rounded-md">
-				<h2 class="text-xl font-semibold mb-2">Result:</h2>
-				<pre class="whitespace-pre-wrap">{result}</pre>
-			</div>
-		{/if}
 	</div>
-{:else}
-	<div class="p-6 max-w-2xl mx-auto">
-		<p>Loading...</p>
-	</div>
-{/if}
+
+	{#if result}
+		<div class="mt-6 p-4 bg-gray-100 rounded-md">
+			<h2 class="text-xl font-semibold mb-2">Result:</h2>
+			<pre class="whitespace-pre-wrap">{result}</pre>
+		</div>
+	{/if}
+</DisplayPlog>

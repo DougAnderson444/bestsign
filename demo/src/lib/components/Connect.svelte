@@ -35,6 +35,10 @@
 	/** @type {string|undefined} - The peer_id of the peer we are connected to */
 	export let peer_id;
 
+	onMount(async () => {
+		console.log('CONNECT MOUNTED');
+	});
+
 	// When the user input Enters the dialAddr, we will connect to the peer using connect
 	async function handleConnect(evt) {
 		connectingState = state.CONNECTING;
@@ -66,6 +70,7 @@
 			let dialAddrs = dialAddr.startsWith('/dnsaddr/')
 				? await resolveDnsaddr(dialAddr)
 				: [dialAddr];
+			console.log('Connecting to', dialAddrs);
 			await piper.connect(dialAddrs, onEvent);
 		} catch (error) {
 			console.error(error);

@@ -21,6 +21,7 @@ export async function peerRequest(piper, request, peer_id) {
 		console.log('PeerRequest:', pr);
 		let response = await piper.command(pr);
 		console.log('PeerResponse:', response);
+		return response;
 	} catch (e) {
 		console.error(e);
 	}
