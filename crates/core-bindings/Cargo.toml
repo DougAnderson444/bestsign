@@ -20,7 +20,7 @@ tracing-subscriber = { version = "0.3" }
 tracing-wasm = { version = "0.2.1", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 multibase = { version = "1.0", git = "https://github.com/cryptidtech/rust-multibase.git" }
-multicid = { version = "1.0", git = "https://github.com/cryptidtech/multicid.git" }
+multicid = { git = "https://github.com/DougAnderson444/multicid", branch = "patch" }
 multihash = { version = "1.0", git = "https://github.com/cryptidtech/multihash.git" }
 multikey = { version = "1.0", git = "https://github.com/cryptidtech/multikey.git" }
 multiutil = { version = "1.0", git = "https://github.com/cryptidtech/multiutil.git" }
