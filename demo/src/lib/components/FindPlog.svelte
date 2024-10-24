@@ -54,6 +54,8 @@
 			let plog_bytes = await getPlogFromProvider(providers[0]);
 
 			if (plog_bytes) {
+				plog_bytes = new Uint8Array(plog_bytes);
+				console.log('plog_bytes:', plog_bytes);
 				// get details from the plog_bytes
 				displayData = await deserialize_plog(plog_bytes);
 			}
