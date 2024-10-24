@@ -1,14 +1,17 @@
 #[allow(warnings)]
 mod bindings;
 
+use std::fs::File;
 use std::io::Write;
 use std::{fs::OpenOptions, io::Read as _};
 
 use bindings::{
+    component::extension::logging,
     component::extension::peer_piper_commands,
     component::extension::types::{Error, Message},
     exports::component::extension::handlers::Guest,
 };
+use chrono::{DateTime, Local, TimeZone};
 
 /// The provenance log.
 use bestsign_core::{serde_cbor, utils, Base, EncodedVlad, Log, Vlad};
@@ -67,6 +70,21 @@ fn vlad_handler(vlad: Vlad) -> Result<Vec<u8>, Error> {
     file.read_to_end(&mut data)
         .map_err(|e| Error::IoError(e.to_string()))?;
 
+    // [datetime]: Sent Plog for Vlad: encoded
+    // change system time to dd/mm/yyyy hh:mm format
+    let unix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    // Convert Unix timestamp to a DateTime<Local>
+    let local_time: DateTime<Local> = Local.timestamp_opt(unix, 0).unwrap();
+
+    // Format the DateTime to the desired string representation
+    local_time.format("%d/%m/%Y %H:%M").to_string();
+
+    let msg = format!("[{}] Sent Plog for Vlad: {}", local_time, encoded);
+    logging::log(&msg);
+
     Ok(data)
 }
 
@@ -86,13 +104,10 @@ fn log_handler(log: &Log, data: &[u8]) -> Result<Vec<u8>, Error> {
         println!("Vlad details: {:?}", vlad);
         println!("KVP data: {:?}", kvp_data);
 
-        // if vlad is verified, save the plog to disk
+        // if vlad is verified, save the plog to disk, overwrtiting if it exists
         if vlad.verified {
-            let mut file = OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(&vlad.encoded)
-                .map_err(|e| Error::IoError(e.to_string()))?;
+            let mut file =
+                File::create(&vlad.encoded).map_err(|e| Error::IoError(e.to_string()))?;
 
             // write the binary data
             file.write_all(data)
