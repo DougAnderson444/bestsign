@@ -27,7 +27,9 @@ pub fn update_plog(
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
 
-    let mut load_key = |key_params: &OpParams| -> Result<Multikey, crate::Error> {
+    let key_manager_ref = RefCell::new(key_manager);
+
+    let load_key = |key_params: &OpParams| -> Result<Multikey, crate::Error> {
         if let OpParams::KeyGen {
             key,
             codec,
@@ -37,7 +39,9 @@ pub fn update_plog(
         } = key_params
         {
             // call back to generate the key
-            let mk = key_manager.get_mk(key, *codec, *threshold, *limit)?;
+            let mk = key_manager_ref
+                .borrow_mut()
+                .get_mk(key, *codec, *threshold, *limit)?;
 
             // get the public key
             let pk = mk.conv_view()?.to_public_key()?;
@@ -142,7 +146,7 @@ pub fn update_plog(
 
     // add in all of the entry Ops
     op_params
-        .borrow_mut()
+        .borrow()
         .iter()
         .try_for_each(|params| -> Result<(), Error> {
             // add the op to the builder
@@ -166,7 +170,8 @@ pub fn update_plog(
         // get the serialzied version of the entry with an empty "proof" field
         let ev: Vec<u8> = e.clone().into();
         // call the call back to have the caller sign the data
-        let ms = key_manager
+        let ms = key_manager_ref
+            .borrow()
             .prove(&entry_mk, &ev)
             .map_err(|e| PlogError::from(EntryError::SignFailed(e.to_string())))?;
         // store the signature as proof

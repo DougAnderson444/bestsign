@@ -16,16 +16,13 @@ use crate::ops::update::OpParams;
 
 use super::traits::CryptoManager;
 
-pub fn create(
-    config: &Config,
-    key_manager: &mut (impl CryptoManager + Clone),
-) -> Result<Log, crate::Error> {
+pub fn create(config: &Config, key_manager: &mut impl CryptoManager) -> Result<Log, crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
 
-    let mut key_manager_clone = key_manager.clone();
+    let key_manager_ref = RefCell::new(key_manager);
 
-    let mut load_key = |key_params: &OpParams| -> Result<Multikey, crate::Error> {
+    let load_key = |key_params: &OpParams| -> Result<Multikey, crate::Error> {
         if let OpParams::KeyGen {
             key,
             codec,
@@ -35,7 +32,9 @@ pub fn create(
         } = key_params
         {
             // call back to generate the key
-            let mk = key_manager_clone.get_mk(key, *codec, *threshold, *limit)?;
+            let mk = key_manager_ref
+                .borrow_mut()
+                .get_mk(key, *codec, *threshold, *limit)?;
 
             // get the public key
             let pk = if mk.attr_view()?.is_secret_key() {
@@ -140,7 +139,7 @@ pub fn create(
         .with_cid(&vlad_cid)
         .try_build(|cid| {
             let cv: Vec<u8> = cid.clone().into();
-            let ms = key_manager.prove(&vlad_mk, &cv)?;
+            let ms = key_manager_ref.borrow().prove(&vlad_mk, &cv)?;
             Ok(ms.into())
         })?;
 
@@ -186,7 +185,8 @@ pub fn create(
         // get the serialzied version of the entry with an empty "proof" field
         let ev: Vec<u8> = e.clone().into();
         // call the call back to have the caller sign the data
-        let ms = key_manager
+        let ms = key_manager_ref
+            .borrow()
             .prove(&entry_mk, &ev)
             .map_err(|e| PlogError::from(EntryError::SignFailed(e.to_string())))?;
         // store the signature as proof
@@ -274,6 +274,7 @@ mod tests {
                     );
 
                     self.vlad = Some(mk.conv_view()?.to_public_key()?);
+                    tracing::info!("Vlad key: {:#?}", self.vlad());
                 }
                 DEFAULT_PUBKEY => {
                     self.entry_key = Some(mk.clone());
@@ -323,6 +324,8 @@ mod tests {
 
         let plog = create(&config, &mut key_manager).unwrap();
 
+        tracing::debug!("VLAD key_manager Set?: {:#?}", key_manager.vlad());
+
         // log.first_lock should match
         assert_eq!(plog.first_lock, config.first_lock_script);
 
@@ -353,7 +356,7 @@ mod tests {
 
         let vlad_key: Multikey = try_extract(&vlad_key_value).unwrap();
 
-        assert_eq!(&vlad_key, &key_manager.vlad().unwrap());
+        assert_eq!(&vlad_key, &key_manager.vlad().unwrap()); //failing
         assert!(plog.vlad.verify(&vlad_key).is_ok());
 
         // /pubkey should match key_manager.entry_key public key

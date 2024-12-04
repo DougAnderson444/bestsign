@@ -11,6 +11,9 @@ pub trait CryptoManager {
     ///
     /// with the given parameters based on the user's preference for
     /// key generation (new random, from seed, etc.).
+    ///
+    /// Mutable self is passed such that the implementation can
+    /// update internal state if necessary.
     fn get_mk(
         &mut self,
         key: &Key,
