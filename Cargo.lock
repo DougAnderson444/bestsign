@@ -111,9 +111,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
+checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
 
 [[package]]
 name = "argon2"
@@ -431,8 +431,8 @@ checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
 name = "comrade-core"
-version = "0.1.0"
-source = "git+ssh://git@github.com/DougAnderson444/comrade.git#25ea7d022bee2321ae658aee1a34fd08598ddf3c"
+version = "0.1.1"
+source = "git+ssh://git@github.com/DougAnderson444/comrade.git#d4f6d35b9dd506724d62e723c50b655f501d8e5c"
 dependencies = [
  "multihash",
  "multikey",
@@ -931,7 +931,7 @@ version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 dependencies = [
- "spin",
+ "spin 0.9.8",
 ]
 
 [[package]]
@@ -1023,8 +1023,8 @@ dependencies = [
 
 [[package]]
 name = "multicid"
-version = "1.0.5"
-source = "git+https://github.com/DougAnderson444/multicid.git?branch=patch#9244562bc39982315a450aacb79c3c4bb49b4368"
+version = "1.1.0"
+source = "git+https://github.com/DougAnderson444/multicid.git?branch=external-prover#dec93ff447c626d7b6d32d8278faea3764099b0b"
 dependencies = [
  "multibase",
  "multicodec",
@@ -1161,6 +1161,15 @@ dependencies = [
  "tracing-subscriber",
  "tracing-wasm",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "no-std-compat"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
+dependencies = [
+ "spin 0.5.2",
 ]
 
 [[package]]
@@ -1424,7 +1433,7 @@ dependencies = [
 [[package]]
 name = "provenance-log"
 version = "1.0.23"
-source = "git+ssh://git@github.com/cryptidtech/provenance-log.git?branch=rhai-compat#15e05082f25f8248a2a5bb3cb4f83276bcea4ba6"
+source = "git+ssh://git@github.com/cryptidtech/provenance-log.git?branch=rhai-compat#b0beb19c9486313f86a0c2fc544257d8f68a5707"
 dependencies = [
  "comrade-core",
  "log",
@@ -1569,6 +1578,7 @@ dependencies = [
  "ahash",
  "bitflags",
  "instant",
+ "no-std-compat",
  "num-traits",
  "once_cell",
  "rhai_codegen",
@@ -1795,6 +1805,12 @@ dependencies = [
  "static_assertions",
  "version_check",
 ]
+
+[[package]]
+name = "spin"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "spin"

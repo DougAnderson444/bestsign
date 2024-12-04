@@ -150,8 +150,8 @@ pub fn get_display_data(log: &Log) -> Result<DisplayData, Error> {
     let vlad_encoded = EncodedVlad::new(Base::Base36Lower, log.vlad.clone()).to_string();
     let vlad_verified = log.vlad.verify(&vlad_key).is_ok();
 
-    let fingerprint = vlad_key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
-    let ef = EncodedMultihash::new(Base::Base36Lower, fingerprint).to_string();
+    //let fingerprint = vlad_key.fingerprint_view()?.fingerprint(Codec::Blake3)?;
+    //let ef = EncodedMultihash::new(Base::Base36Lower, fingerprint).to_string();
 
     let kvp_data = kvp
         .iter()

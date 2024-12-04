@@ -8,7 +8,7 @@ pub use ops::open::Codec;
 
 pub use multibase::Base;
 pub use multicid::{EncodedVlad, Vlad};
-pub use multikey::Multikey;
+pub use multikey::{mk, EncodedMultikey, Multikey, Views};
 pub use multisig::Multisig;
 
 pub use serde_cbor;

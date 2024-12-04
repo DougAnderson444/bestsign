@@ -16,9 +16,14 @@ use crate::ops::update::OpParams;
 
 use super::traits::CryptoManager;
 
-pub fn create(config: &Config, key_manager: &mut impl CryptoManager) -> Result<Log, crate::Error> {
+pub fn create(
+    config: &Config,
+    key_manager: &mut (impl CryptoManager + Clone),
+) -> Result<Log, crate::Error> {
     // 0. Set up the list of ops we're going to add
     let op_params = RefCell::new(Vec::default());
+
+    let mut key_manager_clone = key_manager.clone();
 
     let mut load_key = |key_params: &OpParams| -> Result<Multikey, crate::Error> {
         if let OpParams::KeyGen {
@@ -30,7 +35,7 @@ pub fn create(config: &Config, key_manager: &mut impl CryptoManager) -> Result<L
         } = key_params
         {
             // call back to generate the key
-            let mk = key_manager.get_mk(key, *codec, *threshold, *limit)?;
+            let mk = key_manager_clone.get_mk(key, *codec, *threshold, *limit)?;
 
             // get the public key
             let pk = if mk.attr_view()?.is_secret_key() {
@@ -132,9 +137,12 @@ pub fn create(config: &Config, key_manager: &mut impl CryptoManager) -> Result<L
 
     // construct the signed vlad using the vlad pubkey and the first lock script cid
     let vlad = vlad::Builder::default()
-        .with_signing_key(&vlad_mk)
         .with_cid(&vlad_cid)
-        .try_build()?;
+        .try_build(|cid| {
+            let cv: Vec<u8> = cid.clone().into();
+            let ms = key_manager.prove(&vlad_mk, &cv)?;
+            Ok(ms.into())
+        })?;
 
     // drop the vlad_mk to Zeroize the key
     drop(vlad_mk);

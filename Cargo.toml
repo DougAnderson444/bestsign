@@ -5,6 +5,9 @@ resolver = "2"
 [workspace.package]
 rust-version = "1.78.0" # Minimum Rust version for the entire workspace
 
+[workspace.dependencies]
+multicid = { git = "https://github.com/DougAnderson444/multicid.git", branch = "external-prover" }
+
 [profile.release]
 opt-level = "z"          # Optimize for size.
 lto = true               # Link Time Optimization

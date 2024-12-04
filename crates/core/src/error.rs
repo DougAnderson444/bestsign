@@ -108,3 +108,14 @@ pub enum PlogError {
     #[error("No string value given")]
     NoStringValue,
 }
+
+impl From<Error> for multicid::Error {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::Multicid(e) => e,
+            _ => multicid::Error::Multikey(multikey::Error::Sign(
+                multikey::error::SignError::SigningFailed(e.to_string()),
+            )),
+        }
+    }
+}
