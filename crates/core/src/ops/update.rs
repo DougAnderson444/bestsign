@@ -13,8 +13,8 @@ use multihash::mh;
 use multikey::{Multikey, Views as _};
 pub use op_params::OpParams;
 use provenance_log::error::EntryError;
+use provenance_log::Lipmaa as _;
 use provenance_log::{entry, error::Error as PlogError, Log};
-use provenance_log::{Entry, Lipmaa as _};
 
 use crate::{error::OpenError, ops::traits::CryptoManager, utils, Error};
 

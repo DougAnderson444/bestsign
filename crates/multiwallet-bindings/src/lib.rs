@@ -79,8 +79,8 @@ impl WasmWallet {
         let KeyArgs {
             key,
             codec,
-            threshold,
-            limit,
+            threshold: _,
+            limit: _,
         } = serde_wasm_bindgen::from_value(args).map_err(into_js_val)?;
 
         let codec = Codec::try_from(codec.as_str()).map_err(into_js_val)?;

@@ -6,20 +6,13 @@ use bestsign_core::{
             CidGen, KeyParams, LockScript, UnlockScript, UseStr, VladCid, VladConfig, VladKey,
         },
         create,
-        open::config::{Config, NewLogBuilder},
+        open::config::NewLogBuilder,
         update::UpdateConfig,
         update_plog, CryptoManager,
     },
     Codec, Key, Log, Multikey, Multisig, Script,
 };
 use js_sys::Function;
-use multibase::Base;
-use multicid::{Cid, EncodedCid, EncodedVlad, Vlad};
-use multihash::EncodedMultihash;
-use multikey::views::Views;
-use multitrait::TryDecodeFrom;
-use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
-use provenance_log::{LogValue, Pairs};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -47,6 +40,7 @@ pub struct SignArgs {
 }
 
 /// Struct that will implement KeyManager
+#[derive(Clone)]
 pub struct KeyHandler {
     key: Option<Multikey>,
     get_key_callback: Function,
