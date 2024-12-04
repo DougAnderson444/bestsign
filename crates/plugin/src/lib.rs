@@ -11,10 +11,22 @@ use bindings::{
     component::extension::types::{Error, Message},
     exports::component::extension::handlers::Guest,
 };
-use chrono::{DateTime, Local, TimeZone};
+//use chrono::{DateTime, Local, TimeZone};
 
 /// The provenance log.
 use bestsign_core::{serde_cbor, utils, Base, EncodedVlad, Log, Vlad};
+
+use getrandom::register_custom_getrandom;
+
+/// Custom function to use the import for random number generation
+/// We do this is because "js" feature is incompatible with the component model
+pub fn imported_random(dest: &mut [u8]) -> Result<(), getrandom::Error> {
+    // just use a bunch of default numbers for now
+    dest.copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    Ok(())
+}
+
+register_custom_getrandom!(imported_random);
 
 struct Component;
 
@@ -72,17 +84,17 @@ fn vlad_handler(vlad: Vlad) -> Result<Vec<u8>, Error> {
 
     // [datetime]: Sent Plog for Vlad: encoded
     // change system time to dd/mm/yyyy hh:mm format
-    let unix = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    //let unix = std::time::SystemTime::now()
+    //    .duration_since(std::time::UNIX_EPOCH)
+    //    .unwrap()
+    //    .as_secs() as i64;
     // Convert Unix timestamp to a DateTime<Local>
-    let local_time: DateTime<Local> = Local.timestamp_opt(unix, 0).unwrap();
+    //let local_time: DateTime<Local> = Local.timestamp_opt(unix, 0).unwrap();
 
     // Format the DateTime to the desired string representation
-    local_time.format("%d/%m/%Y %H:%M").to_string();
+    //local_time.format("%d/%m/%Y %H:%M").to_string();
 
-    let msg = format!("[{}] Sent Plog for Vlad: {}", local_time, encoded);
+    let msg = format!("Sent Plog for Vlad: {}", encoded);
     logging::log(&msg);
 
     Ok(data)
