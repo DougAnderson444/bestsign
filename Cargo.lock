@@ -1433,7 +1433,7 @@ dependencies = [
 [[package]]
 name = "provenance-log"
 version = "1.0.23"
-source = "git+ssh://git@github.com/cryptidtech/provenance-log.git?branch=rhai-compat#b0beb19c9486313f86a0c2fc544257d8f68a5707"
+source = "git+ssh://git@github.com/DougAnderson444/provenance-log.git?branch=rhai-compat#b0beb19c9486313f86a0c2fc544257d8f68a5707"
 dependencies = [
  "comrade-core",
  "log",
