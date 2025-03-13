@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-rust-version = "1.78.0" # Minimum Rust version for the entire workspace
+rust-version = "1.83.0" # Minimum Rust version for the entire workspace
 
 [workspace.dependencies]
 bestsign-core = { path = "./crates/core" }
