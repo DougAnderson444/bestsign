@@ -1,13 +1,13 @@
-use std::mem;
+use std::{collections::BTreeMap, future::Future, mem, pin::Pin};
 
 use multibase::Base;
 use multicid::{Cid, EncodedCid, EncodedVlad, Vlad};
 use multicodec::Codec;
 use multihash::EncodedMultihash;
 use multikey::{Multikey, Views as _};
+use multitrait::Null;
 use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
-use provenance_log::{entry, vm, Key, Log, LogValue, OpId, Pairs, Script};
-use serde::{Deserialize, Serialize};
+use provenance_log::{entry, vm, Entry, Key, Log, LogValue, OpId, Pairs, Script};
 
 use crate::{
     error::{OpenError, PlogError},
@@ -76,8 +76,40 @@ where
     }
 }
 
+pub trait Resolver {
+    fn resolve(
+        &self,
+        cid: &Cid,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Box<dyn std::error::Error>>> + Send>>;
+}
+
+/// Recursively rsolve data from a head cid down to the foot cid,
+/// returning a Vec of Entry for the Plog
+/// Also returns the foot Entry
+pub async fn fetch_plog_data(
+    head_cid: Cid,
+    get_data: impl Resolver,
+) -> Result<(BTreeMap<multicid::Cid, Entry>, multicid::Cid), Box<dyn std::error::Error>> {
+    let mut entries = BTreeMap::new();
+    let mut current_cid = head_cid;
+    //while current_cid != Null::null() {
+    loop {
+        let entry_bytes = get_data.resolve(&current_cid).await?;
+        let entry = Entry::try_from(entry_bytes.as_slice())?;
+        entries.insert(current_cid.clone(), entry.clone());
+        if entry.prev() == Null::null() {
+            break;
+        }
+        current_cid = entry.prev();
+    }
+    let foot = current_cid;
+
+    Ok((entries, foot))
+}
+
 /// Vlad details
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VladDetails {
     pub value: Vlad,
     pub bytes: Vec<u8>,
@@ -86,7 +118,8 @@ pub struct VladDetails {
 }
 
 /// Utility enum to hold all possible display data types
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DisplayData {
     ReturnValue {
         vlad: VladDetails,
@@ -254,11 +287,6 @@ pub fn decode_vlad(s: &str) -> Result<Vec<u8>, Error> {
 
     let vlad = encoded_vlad.to_inner();
     Ok(vlad.into())
-}
-
-/// Serialize a Vlad using serde_cbor
-pub fn serialize_vlad(vlad: &Vlad) -> Result<Vec<u8>, Error> {
-    serde_cbor::to_vec(vlad).map_err(Error::Serde)
 }
 
 #[cfg(test)]
