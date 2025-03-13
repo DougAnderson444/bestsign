@@ -7,14 +7,14 @@ use std::{fs::OpenOptions, io::Read as _};
 
 use bindings::{
     component::extension::logging,
-    component::extension::peer_piper_commands,
+    component::extension::peer_piper_commands::start_providing,
     component::extension::types::{Error, Message},
     exports::component::extension::handlers::Guest,
 };
 //use chrono::{DateTime, Local, TimeZone};
 
 /// The provenance log.
-use bestsign_core::{serde_cbor, utils, Base, EncodedVlad, Log, Vlad};
+use bestsign_core::{utils, Base, EncodedVlad, Log, Vlad};
 
 use getrandom::register_custom_getrandom;
 
@@ -55,7 +55,7 @@ impl Guest for Component {
     /// Respond to a request with the given bytes
     fn handle_request(data: Vec<u8>) -> Result<Vec<u8>, Error> {
         // Simple check to see what kind of data we are dealing with
-        if let Ok(log) = serde_cbor::from_slice(&data) {
+        if let Ok(log) = Log::try_from(data.as_slice()) {
             return log_handler(&log, &data);
         }
 
@@ -67,7 +67,8 @@ impl Guest for Component {
     }
 }
 
-/// handle if Vlad is requested to be provided
+/// This function takes the given Vlad, and if there is a file
+/// with the Vlad name, returns those bytes, which is the Plog
 fn vlad_handler(vlad: Vlad) -> Result<Vec<u8>, Error> {
     // convert vlad to
     let encoded = EncodedVlad::new(Base::Base36Lower, vlad).to_string();
@@ -100,7 +101,22 @@ fn vlad_handler(vlad: Vlad) -> Result<Vec<u8>, Error> {
     Ok(data)
 }
 
-/// For [Log] types, handle the request
+/// For the given [Log] types, save the [Log] bytes to disk
+/// under the [Vlad] name, onlyif the [Vlad] is verified
+// A Log has CIDs for:
+// - foot Entry
+// - head Entry
+// - All Entries (see Entry below)
+// - ops may have CIDs embedded in them too, we'd have to iterate through each op in each log entry
+// and see if they convert to a CID
+//
+// A Log also has Entires, a Map of <Cid, Entry>, which has CIDs:
+// - self.cid()
+// - prev
+// - lipmaa
+//
+// So if we provide the Vlad on the DHT, we should use our blockstore
+// to recurviesly put_keyed the Log CIDs, and the Entrie CIDs
 fn log_handler(log: &Log, data: &[u8]) -> Result<Vec<u8>, Error> {
     // TODO: Ensure the encoding is the same as decoding Base
     let display = utils::get_display_data(log).map_err(|e| Error::HandlerError(e.to_string()))?;
@@ -129,7 +145,7 @@ fn log_handler(log: &Log, data: &[u8]) -> Result<Vec<u8>, Error> {
 
             // start providing on the DHT
             // TODO: Use the Blake3 hash instead of the bytes
-            peer_piper_commands::start_providing(&vlad.bytes);
+            start_providing(&vlad.bytes);
 
             // return 1 for true
             return Ok(vec![1]);
