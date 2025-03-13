@@ -8,7 +8,7 @@ rust-version.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-bestsign-core = { path = "../core" }
+bestsign-core = { workspace = true }
 wasm-bindgen = "0.2"
 seed-keeper-core = { git = "https://github.com/DougAnderson444/seed-keeper.git" }
 serde = { version = "1.0", features = ["derive"] }
