@@ -95,10 +95,12 @@ where
 /// }
 ///
 /// impl Resolver for Resolve {
+///    type Error = TestError;
+///
 ///    fn resolve(
 ///        &self,
 ///        cid: &multicid::Cid,
-///    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Box<dyn std::error::Error>>> + Send>> {
+///    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>> {
 ///        let blockstore = self.blockstore.clone();
 ///        let cid_bytes: Vec<u8> = (cid.clone()).into();
 ///        Box::pin(async move {
@@ -111,12 +113,23 @@ where
 ///        })
 ///    }
 /// }
+///
+/// #[derive(thiserror::Error, Debug)]
+/// enum TestError {
+///    #[error("Blockstore error: {0}")]
+///    BlockstoreError(#[from] blockstore::Error),
+///    #[error("Cid error: {0}")]
+///    CidError(#[from] cid::Error),
+/// }
 ///```
+#[allow(clippy::type_complexity)]
 pub trait Resolver {
+    type Error: std::error::Error + 'static;
+
     fn resolve(
         &self,
         cid: &Cid,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Box<dyn std::error::Error>>> + Send>>;
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>>;
 }
 
 /// Recursively rsolve data from a head cid down to the foot cid,

@@ -17,7 +17,7 @@ multikey = { version = "1.0", git = "https://github.com/DougAnderson444/multikey
 multisig = { version = "1.0", git = "https://github.com/DougAnderson444/multisig.git" }
 multiutil = { version = "1.0", git = "https://github.com/cryptidtech/multiutil.git" }
 multitrait = { version = "1.0", git = "https://github.com/cryptidtech/multitrait.git" }
-thiserror = "1.0"
+thiserror = "2"
 provenance-log = { workspace = true, features = ["rhai"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 tracing = "0.1.40"

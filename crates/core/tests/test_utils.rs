@@ -1,7 +1,7 @@
 //! Test utilities for the core crate.
 #[path = "./fixtures.rs"]
 mod fixtures;
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{fmt::Display, future::Future, pin::Pin, sync::Arc};
 
 use fixtures::TestKeyManager;
 use tokio::sync::Mutex;
@@ -186,10 +186,12 @@ struct Resolve {
 }
 
 impl Resolver for Resolve {
+    type Error = TestError;
+
     fn resolve(
         &self,
         cid: &multicid::Cid,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Box<dyn std::error::Error>>> + Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>> {
         let blockstore = self.blockstore.clone();
         let cid_bytes: Vec<u8> = (cid.clone()).into();
         Box::pin(async move {
@@ -201,4 +203,12 @@ impl Resolver for Resolve {
             Ok(block)
         })
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+enum TestError {
+    #[error("Blockstore error: {0}")]
+    BlockstoreError(#[from] blockstore::Error),
+    #[error("Cid error: {0}")]
+    CidError(#[from] cid::Error),
 }
