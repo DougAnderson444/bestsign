@@ -2,10 +2,10 @@ use multicid::Cid;
 use multicodec::Codec;
 use multikey::Multikey;
 use provenance_log::Key;
-use serde::{Deserialize, Serialize};
 
 /// The Op params for additional ops
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum OpParams {
     /// Noop params
     Noop {

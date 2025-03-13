@@ -3,28 +3,28 @@ use crate::ops::config::utils::*;
 use crate::ops::config::{LockScript, UnlockScript, VladConfig};
 
 use provenance_log::Script;
-use serde::{Deserialize, Serialize};
 
 use crate::ops::update::OpParams;
 
 /// the configuration for opening a new provenance log.
 /// It's Serializable and Deserializable.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone)]
 pub struct Config {
     /// The vlad key and cid params
-    #[serde(default = "default_vlad_params")]
+    #[cfg_attr(feature = "serde", serde(default = "default_vlad_params"))]
     pub vlad_params: VladConfig,
 
     /// The entry key params
-    #[serde(default = "default_entrykey_params")]
+    #[cfg_attr(feature = "serde", serde(default = "default_entrykey_params"))]
     pub entrykey_params: OpParams,
 
     /// The pubkey params
-    #[serde(default = "default_pubkey_params")]
+    #[cfg_attr(feature = "serde", serde(default = "default_pubkey_params"))]
     pub pubkey_params: OpParams,
 
     /// The first lock script
-    #[serde(default = "default_first_lock_script")]
+    #[cfg_attr(feature = "serde", serde(default = "default_first_lock_script"))]
     pub first_lock_script: Script,
 
     /// The entry lock script

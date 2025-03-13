@@ -2,10 +2,6 @@
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
-    /// Serde error (serde_cbor::Error)
-    #[error(transparent)]
-    Serde(#[from] serde_cbor::Error),
-
     /// Open operation errors
     #[error(transparent)]
     Open(#[from] OpenError),

@@ -4,5 +4,4 @@ pub use utils::{
     CidGen, KeyParams, LockScript, UnlockScript, UseStr, VladCid, VladConfig, VladKey,
 };
 
-use serde::{Deserialize, Serialize};
 pub mod defaults;

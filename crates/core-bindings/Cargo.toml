@@ -8,7 +8,7 @@ rust-version.workspace = true   # Inherit from workspace
 crate-type = ["cdylib"]
 
 [dependencies]
-bestsign-core = { path = "../core" }
+bestsign-core = { path = "../core", features = ["serde"] }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 serde = { version = "1.0", features = ["derive"] }

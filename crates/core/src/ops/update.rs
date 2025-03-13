@@ -157,12 +157,11 @@ pub fn update_plog(
     // check current entry for lipmaa longhop, and set lipmaa if needed
     let curr_seqno = last_entry.seqno() + 1;
     if curr_seqno.is_lipmaa() {
-        tracing::debug!("Setting lipmaa for seqno: {}", curr_seqno);
         let lipmaa = curr_seqno.lipmaa();
         let longhop_entry = plog.seqno(lipmaa)?;
         builder = builder.with_lipmaa(&longhop_entry.cid());
     } else {
-        tracing::debug!("No lipmaa for seqno: {}", curr_seqno);
+        tracing::trace!("No lipmaa for seqno: {}", curr_seqno);
     }
 
     // finalize the entry building by signing it
@@ -179,7 +178,16 @@ pub fn update_plog(
     })?;
 
     // try to add the entry to the p.log
-    plog.try_append(entry)?;
+    plog.try_append(entry.clone())?;
+
+    // head should be entry
+    debug_assert_eq!(plog.head, entry.cid());
+
+    // debug assert that the current plog.prev() matches the last entry cid
+    debug_assert_eq!(
+        last_entry.cid(),
+        plog.entries.get(&plog.head).unwrap().prev()
+    );
 
     Ok(())
 }
@@ -292,8 +300,13 @@ mod tests {
         .add_lock(Key::try_from("/delegated/")?, lock_script)
         .build();
 
+        let prev = plog.head.clone();
+
         // tak config and use update method with TestKeyManager to update the log
         update_plog(&mut plog, &update_cfg, &mut key_manager)?;
+
+        // plog head prev should match prev
+        assert_eq!(prev, plog.entries.get(&plog.head).unwrap().prev());
 
         // There should be no DEFAULT_ENTRYKEY kvp
         let verify_iter = &mut plog.verify();

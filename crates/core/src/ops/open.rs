@@ -350,7 +350,7 @@ mod tests {
         }
 
         // TODO: This API could be improved
-        let (_, _, kvp) = &mut plog.verify().next().unwrap().unwrap();
+        let (_count, _entry, kvp) = &mut plog.verify().next().unwrap().unwrap();
 
         let vlad_key_value = kvp.get(DEFAULT_VLAD_KEY).unwrap();
 

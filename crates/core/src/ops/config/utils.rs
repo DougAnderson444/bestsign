@@ -5,25 +5,28 @@ use provenance_log::{Key, Script};
 
 use crate::{ops::update::OpParams, Error};
 
-use super::*;
-
 /// NewType Wrapper around VladKey OpParams
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VladKey(pub OpParams);
 
 /// NewType Wrapper around VladCid OpParams
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VladCid(pub OpParams);
 
 /// NewType wrapper around KeyCodec
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyCodec(pub Codec);
 
 /// NewType wrapper around HashCodec
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HashCodec(pub Codec);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PublicKeyParams {
     pub codec: KeyCodec,
     pub threshold: Option<usize>,
@@ -63,7 +66,8 @@ impl Deref for HashCodec {
 }
 
 /// Add a Key to the OpParams
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyParams {
     /// How you identify this key, ie. "/pubkey" or "/key1"
     pub key: Key,
@@ -91,7 +95,8 @@ impl From<KeyParams> for OpParams {
 }
 
 /// Add a Key Value<String>
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UseStr {
     pub key: String,
     pub value: String,
@@ -109,7 +114,8 @@ impl TryFrom<UseStr> for OpParams {
 }
 
 // Add a Content Identifier (CID) to the OpParams
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CidGen {
     pub key: Key,
     pub version: Codec,
@@ -133,14 +139,16 @@ impl From<CidGen> for OpParams {
 }
 
 /// Vlad config struct, made up of VladKey and VladCid fields.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VladConfig {
     pub key: VladKey,
     pub cid: VladCid,
 }
 
 /// NewType Wrapper around Lock Script
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LockScript(pub Script);
 
 impl LockScript {
@@ -159,7 +167,8 @@ impl Deref for LockScript {
 }
 
 /// NewType Wrapper around Unlock script
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UnlockScript(pub Script);
 
 impl UnlockScript {
