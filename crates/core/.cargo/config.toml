@@ -1,0 +1,3 @@
+# RUST_LOG=debug  
+[env]
+RUST_LOG = "debug,comrade_core=off"
