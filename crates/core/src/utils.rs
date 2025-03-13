@@ -76,6 +76,42 @@ where
     }
 }
 
+/// A trait for resolving data from a Cid.
+///
+/// # Example
+///
+/// ```rust
+/// use std::collections::BTreeMap;
+/// use std::pin::Pin;
+/// use std::future::Future;
+/// use std::sync::Arc;
+/// use tokio::sync::Mutex;
+/// use bestsign_core::Entry;
+/// use blockstore::{Blockstore as _, InMemoryBlockstore};
+/// use bestsign_core::utils::Resolver;
+///
+/// struct Resolve {
+///    pub blockstore: Arc<Mutex<InMemoryBlockstore<64>>>,
+/// }
+///
+/// impl Resolver for Resolve {
+///    fn resolve(
+///        &self,
+///        cid: &multicid::Cid,
+///    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Box<dyn std::error::Error>>> + Send>> {
+///        let blockstore = self.blockstore.clone();
+///        let cid_bytes: Vec<u8> = (cid.clone()).into();
+///        Box::pin(async move {
+///            let cid = cid::Cid::try_from(cid_bytes)?;
+///
+///            let Some(block) = blockstore.lock().await.get(&cid).await? else {
+///                panic!("Failed to get block from blockstore");
+///            };
+///            Ok(block)
+///        })
+///    }
+/// }
+///```
 pub trait Resolver {
     fn resolve(
         &self,

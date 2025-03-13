@@ -8,21 +8,18 @@ use multicodec::Codec;
 use multihash::EncodedMultihash;
 use multikey::{mk, Multikey, Views};
 use multisig::Multisig;
-use multiutil::codec_info::CodecInfo;
-use provenance_log::{Key, Log, Pairs, Script};
+use provenance_log::{Key, Log, Script};
 use tracing_subscriber::{fmt, EnvFilter};
 
 use serde::{Deserialize, Serialize};
-use serde_ipld_dagcbor::{from_slice, to_vec};
 
 use blockstore::block::{Block, CidError};
-use blockstore::{Blockstore, InMemoryBlockstore};
 use cid::Cid;
 use multihash_codetable::{Code, MultihashDigest};
 
 const RAW_CODEC: u64 = 0x55;
 
-pub fn init_logger() {
+pub(crate) fn init_logger() {
     let subscriber = fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .finish();
@@ -38,8 +35,7 @@ pub struct RawBlock(pub Vec<u8>);
 
 impl Block<64> for RawBlock {
     fn cid(&self) -> Result<Cid, CidError> {
-        let bytes = to_vec(self).unwrap();
-        let mh = Code::Sha2_256.digest(&bytes);
+        let mh = Code::Sha2_256.digest(&self.0);
         Ok(Cid::new_v1(RAW_CODEC, mh))
     }
 
@@ -83,7 +79,7 @@ impl CryptoManager for TestKeyManager {
         _threshold: usize,
         _limit: usize,
     ) -> Result<Multikey, Error> {
-        tracing::info!("Key request for {:?}", key.to_string());
+        tracing::trace!("Key request for {:?}", key.to_string());
 
         let mut rng = rand::rngs::OsRng;
         let mk = mk::Builder::new_from_random_bytes(codec, &mut rng)?.try_build()?;
@@ -97,7 +93,7 @@ impl CryptoManager for TestKeyManager {
                 );
 
                 self.vlad = Some(mk.conv_view()?.to_public_key()?);
-                tracing::info!("Vlad key: {:#?}", self.vlad());
+                tracing::trace!("Vlad key: {:#?}", self.vlad());
             }
             DEFAULT_PUBKEY => {
                 self.entry_key = Some(mk.clone());

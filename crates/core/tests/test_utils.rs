@@ -153,34 +153,11 @@ mod tests {
 
         let verify_iter = &mut rebuilt_plog.verify();
 
-        tracing::info!("*** Verifying rebuilt log **");
-
         // Entry 0 of the rebuilt plog should match the first entry of the original plog
         assert_eq!(
             plog.entries[&plog.head],
             fetched_entries.get(&plog.head).unwrap().clone()
         );
-
-        // show entry 0 ops (foot entry)
-        let mut entries: Vec<&Entry> = rebuilt_plog.entries.values().collect();
-        entries.sort();
-
-        let entry_0 = entries[0];
-
-        for op in entry_0.ops() {
-            tracing::info!("Entry 0 Op: {:#?}", op);
-        }
-
-        // entry get_value for "/entry/" entry_0
-        match entry_0.get_value(&Key::try_from("/entry/").unwrap()) {
-            Some(value) => {
-                tracing::info!("Entry 0 Value: {:#?}", value);
-            }
-            _ => {
-                // fail test
-                panic!("Entry 0 has no value for key /entry/");
-            }
-        }
 
         // the log should also verify
         for ret in verify_iter {
@@ -202,6 +179,7 @@ mod tests {
     }
 }
 
+/// A resolver that fetches data from the blockstore.
 #[derive(Clone)]
 struct Resolve {
     pub blockstore: Arc<Mutex<InMemoryBlockstore<64>>>,

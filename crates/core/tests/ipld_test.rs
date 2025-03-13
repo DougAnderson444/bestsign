@@ -40,8 +40,6 @@ async fn test_ipld() {
 
     let plog = create(&config, &mut key_manager).unwrap();
 
-    // Now the test part. We want to see if we can get the head cid if we serde_ipld_dagcbor the
-    // whole Plog.
     let head_cid: Vec<u8> = plog.head.clone().into();
 
     // convert multicid into Cid
@@ -50,7 +48,9 @@ async fn test_ipld() {
     // bytes should match
     assert_eq!(head_cid_converted.to_bytes(), head_cid.clone());
 
-    let plog_block = RawBlock(to_vec(&plog).unwrap());
+    let plog_bytes: Vec<u8> = plog.into();
+
+    let plog_block = RawBlock(plog_bytes);
     let root_cid = plog_block.cid().unwrap();
 
     let blockstore = InMemoryBlockstore::<64>::new();

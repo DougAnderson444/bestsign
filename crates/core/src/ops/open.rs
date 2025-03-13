@@ -260,7 +260,7 @@ mod tests {
             _threshold: usize,
             _limit: usize,
         ) -> Result<Multikey, Error> {
-            tracing::info!("Key request for {:?}", key.to_string());
+            tracing::trace!("Key request for {:?}", key.to_string());
 
             let mut rng = rand::rngs::OsRng;
             let mk = mk::Builder::new_from_random_bytes(codec, &mut rng)?.try_build()?;
@@ -274,7 +274,7 @@ mod tests {
                     );
 
                     self.vlad = Some(mk.conv_view()?.to_public_key()?);
-                    tracing::info!("Vlad key: {:#?}", self.vlad());
+                    tracing::trace!("Vlad key: {:#?}", self.vlad());
                 }
                 DEFAULT_PUBKEY => {
                     self.entry_key = Some(mk.clone());
@@ -324,18 +324,18 @@ mod tests {
 
         let plog = create(&config, &mut key_manager).unwrap();
 
-        tracing::debug!("VLAD key_manager Set?: {:#?}", key_manager.vlad());
+        tracing::trace!("VLAD key_manager Set?: {:#?}", key_manager.vlad());
 
         // log.first_lock should match
         assert_eq!(plog.first_lock, config.first_lock_script);
 
-        tracing::debug!("Entries: {:#?}", plog.entries);
+        tracing::trace!("Entries: {:#?}", plog.entries);
 
         // the entry.vlad is the pubkey against the vlad.nonce as a signature, with the first lock script as the data signed
 
         // show vlad byte legth
         let vlad_bytes: Vec<u8> = plog.vlad.clone().into();
-        tracing::debug!("Vlad [{} bytes]: {:#?}", vlad_bytes.len(), plog.vlad);
+        tracing::trace!("Vlad [{} bytes]: {:#?}", vlad_bytes.len(), plog.vlad);
 
         // 1. Get vlad_key from plog first entry
         let verify_iter = &mut plog.verify();
