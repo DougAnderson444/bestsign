@@ -29,7 +29,7 @@ use std::{future::Future, pin::Pin};
 /// use std::future::Future;
 /// use std::sync::Arc;
 /// use tokio::sync::Mutex;
-/// use bestsign_core::Entry;
+/// use bestsign_core::{Entry, Cid};
 /// use blockstore::{Blockstore as _, InMemoryBlockstore};
 /// use bestsign_core::resolve::Resolver;
 ///
@@ -42,7 +42,7 @@ use std::{future::Future, pin::Pin};
 ///
 ///    fn resolve(
 ///        &self,
-///        cid: &multicid::Cid,
+///        cid: &Cid,
 ///    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>> {
 ///        let blockstore = self.blockstore.clone();
 ///        let cid_bytes: Vec<u8> = (cid.clone()).into();

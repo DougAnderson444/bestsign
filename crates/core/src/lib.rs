@@ -8,7 +8,7 @@ pub use ops::open::Codec;
 
 pub use provenance_log::{multicid, multikey, multisig, multitrait};
 
-pub use multicid::{EncodedVlad, Vlad};
+pub use multicid::{Cid, EncodedVlad, Vlad};
 pub use multikey::multibase::Base;
 pub use multikey::{mk, EncodedMultikey, Multikey, Views};
 pub use multisig::Multisig;
