@@ -1,3 +1,5 @@
+use provenance_log::{multicid, multihash, multikey};
+
 pub mod config;
 use std::cell::RefCell;
 
@@ -204,6 +206,8 @@ mod tests {
     };
 
     use super::*;
+    use provenance_log::{multicodec, multikey, multisig};
+
     use multicodec::Codec;
     use multikey::{mk, Multikey};
     use multisig::Multisig;

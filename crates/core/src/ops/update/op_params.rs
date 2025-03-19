@@ -1,3 +1,5 @@
+use provenance_log::{multicid, multicodec, multikey};
+
 use multicid::Cid;
 use multicodec::Codec;
 use multikey::Multikey;

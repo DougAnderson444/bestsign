@@ -1,3 +1,5 @@
+use provenance_log::{multicodec, multikey, multisig};
+
 use multicodec::Codec;
 use multikey::Multikey;
 use multisig::Multisig;

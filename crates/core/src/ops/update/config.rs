@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: FSL-1.1
+use provenance_log::multikey;
+
 use crate::ops::update::op_params::OpParams;
 use multikey::Multikey;
 use provenance_log::Script;
@@ -68,6 +70,8 @@ impl UpdateConfig {
 mod tests {
     use super::*;
     use crate::ops::update::op_params::OpParams;
+    use provenance_log::multicodec;
+
     use multicodec::Codec;
     use multikey::mk;
     use provenance_log::{Key, Script};

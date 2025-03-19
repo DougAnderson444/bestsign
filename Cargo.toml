@@ -8,7 +8,8 @@ rust-version = "1.83.0" # Minimum Rust version for the entire workspace
 [workspace.dependencies]
 bestsign-core = { path = "./crates/core" }
 multicid = { git = "https://github.com/DougAnderson444/multicid.git", branch = "external-prover" }
-provenance-log = { version = "1.0", git = "ssh://git@github.com/DougAnderson444/provenance-log.git", branch = "rhai-compat", features = [
+multikey = { version = "1.0", git = "https://github.com/DougAnderson444/multikey.git", branch = "deps" }
+provenance-log = { git = "ssh://git@github.com/DougAnderson444/provenance-log.git", branch = "rhai-compat", features = [
   "rhai",
 ] }
 

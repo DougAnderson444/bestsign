@@ -1,3 +1,5 @@
+use provenance_log::{multicid, multihash, multikey, multiutil};
+
 /// Errors generated from this crate
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]

@@ -3,6 +3,8 @@ pub mod config;
 use config::Config;
 use std::cell::RefCell;
 
+use provenance_log::{multicid, multicodec, multihash, multikey};
+
 pub use crate::ops::config::VladConfig;
 use multicid::{cid, vlad};
 pub use multicodec::Codec;
@@ -215,6 +217,8 @@ mod tests {
     use crate::ops::config::defaults::DEFAULT_PUBKEY;
     use crate::ops::config::defaults::DEFAULT_VLAD_KEY;
     use crate::ops::config::{LockScript, UnlockScript};
+    use provenance_log::{multibase, multisig};
+
     use multibase::Base;
     use multicodec::Codec;
     use multihash::EncodedMultihash;

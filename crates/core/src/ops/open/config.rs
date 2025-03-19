@@ -7,7 +7,7 @@ use provenance_log::Script;
 use crate::ops::update::OpParams;
 
 /// the configuration for opening a new provenance log.
-/// It's Serializable and Deserializable.
+/// It's Serializable and Deserializable under the feature "serde"
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct Config {

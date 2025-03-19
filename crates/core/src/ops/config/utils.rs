@@ -1,3 +1,5 @@
+use provenance_log::multicodec;
+
 use std::ops::Deref;
 
 use multicodec::Codec;

@@ -6,8 +6,10 @@ pub use error::Error;
 pub mod ops;
 pub use ops::open::Codec;
 
-pub use multibase::Base;
+pub use provenance_log::{multicid, multikey, multisig, multitrait};
+
 pub use multicid::{EncodedVlad, Vlad};
+pub use multikey::multibase::Base;
 pub use multikey::{mk, EncodedMultikey, Multikey, Views};
 pub use multisig::Multisig;
 
@@ -17,3 +19,8 @@ pub use provenance_log::{entry, Entry, Key, Log, Script};
 pub use multitrait::Null;
 
 pub mod utils;
+
+/// Resolving utilities
+pub mod resolve;
+
+pub use multikey::multicrates::*;

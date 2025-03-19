@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: FSL-1.1
 // Copyright 2024 Doug Anderson
 //! Default values for the [OpParams] and [Script] structs
+use provenance_log::multicodec;
+
 use multicodec::Codec;
 use provenance_log::{Key, Script};
 
