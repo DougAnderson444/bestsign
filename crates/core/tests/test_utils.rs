@@ -7,6 +7,7 @@ use fixtures::TestKeyManager;
 use tokio::sync::Mutex;
 
 use bestsign_core::{
+    multicid,
     ops::{
         config::{defaults::DEFAULT_ENTRYKEY, LockScript, UnlockScript},
         create,
@@ -14,7 +15,7 @@ use bestsign_core::{
         update::{OpParams, UpdateConfig},
         update_plog,
     },
-    utils::{fetch_plog_data, Resolver},
+    resolve::{get_entry_chain, Resolver},
     Key,
 };
 use blockstore::{Blockstore as _, InMemoryBlockstore};
@@ -124,12 +125,12 @@ mod tests {
                 .await?;
         }
 
-        // use fetch_plog_data to get all the data from the blockstore
+        // get all the data from the blockstore
         let resolver = Resolve { blockstore };
 
         assert_eq!(plog.entries.len(), 3);
 
-        let (fetched_entries, foot) = fetch_plog_data(plog.head.clone(), resolver.clone()).await?;
+        let fetched_entries = get_entry_chain(plog.head.clone(), resolver.clone()).await?;
 
         // Reconstruct the plog from the fetched entries
         let first_lock_cid = plog.vlad.cid();
@@ -144,11 +145,11 @@ mod tests {
             // First lock script CID is the second half of the vlad
             .with_first_lock(&mayabe_first_lock_script)
             // we get these entries from the network
-            .with_entries(&fetched_entries)
+            .with_entries(&fetched_entries.clone().into_iter().collect())
             // We will have the head from the DHT record value
             .with_head(&plog.head)
             // foot is the last entry we fecthed from the blockstore
-            .with_foot(&foot)
+            .with_foot(fetched_entries.last().unwrap().0)
             .try_build()?;
 
         let verify_iter = &mut rebuilt_plog.verify();

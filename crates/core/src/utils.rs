@@ -1,13 +1,12 @@
-use std::{collections::BTreeMap, future::Future, mem, pin::Pin};
+use provenance_log::{multibase, multicid, multicodec, multihash, multikey, multiutil};
 
 use multibase::Base;
 use multicid::{Cid, EncodedCid, EncodedVlad, Vlad};
 use multicodec::Codec;
 use multihash::EncodedMultihash;
 use multikey::{Multikey, Views as _};
-use multitrait::Null;
 use multiutil::{BaseEncoded, CodecInfo, DetectedEncoder, EncodingInfo};
-use provenance_log::{entry, vm, Entry, Key, Log, LogValue, OpId, Pairs, Script};
+use provenance_log::{entry, vm, Key, Log, LogValue, OpId, Pairs, Script};
 
 use crate::{
     error::{OpenError, PlogError},
@@ -54,7 +53,7 @@ pub(crate) fn apply_operations(
     };
     // add the op to the builder
     let mut latest = builder.clone().add_op(&op);
-    Ok(mem::take(&mut latest))
+    Ok(std::mem::take(&mut latest))
 }
 
 /// Extracts an Option<T> the [provenance_log::LogValue]
@@ -74,86 +73,6 @@ where
         }
         _ => None,
     }
-}
-
-/// A trait for resolving data from a Cid.
-///
-/// # Example
-///
-/// ```rust
-/// use std::collections::BTreeMap;
-/// use std::pin::Pin;
-/// use std::future::Future;
-/// use std::sync::Arc;
-/// use tokio::sync::Mutex;
-/// use bestsign_core::Entry;
-/// use blockstore::{Blockstore as _, InMemoryBlockstore};
-/// use bestsign_core::utils::Resolver;
-///
-/// struct Resolve {
-///    pub blockstore: Arc<Mutex<InMemoryBlockstore<64>>>,
-/// }
-///
-/// impl Resolver for Resolve {
-///    type Error = TestError;
-///
-///    fn resolve(
-///        &self,
-///        cid: &multicid::Cid,
-///    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>> {
-///        let blockstore = self.blockstore.clone();
-///        let cid_bytes: Vec<u8> = (cid.clone()).into();
-///        Box::pin(async move {
-///            let cid = cid::Cid::try_from(cid_bytes)?;
-///
-///            let Some(block) = blockstore.lock().await.get(&cid).await? else {
-///                panic!("Failed to get block from blockstore");
-///            };
-///            Ok(block)
-///        })
-///    }
-/// }
-///
-/// #[derive(thiserror::Error, Debug)]
-/// enum TestError {
-///    #[error("Blockstore error: {0}")]
-///    BlockstoreError(#[from] blockstore::Error),
-///    #[error("Cid error: {0}")]
-///    CidError(#[from] cid::Error),
-/// }
-///```
-#[allow(clippy::type_complexity)]
-pub trait Resolver {
-    type Error: std::error::Error + 'static;
-
-    fn resolve(
-        &self,
-        cid: &Cid,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>>;
-}
-
-/// Recursively rsolve data from a head cid down to the foot cid,
-/// returning a Vec of Entry for the Plog
-/// Also returns the foot Entry
-pub async fn fetch_plog_data(
-    head_cid: Cid,
-    get_data: impl Resolver,
-) -> Result<(BTreeMap<multicid::Cid, Entry>, multicid::Cid), Box<dyn std::error::Error>> {
-    let mut entries = BTreeMap::new();
-    let mut current_cid = head_cid;
-    //while current_cid != Null::null() {
-    loop {
-        let entry_bytes = get_data.resolve(&current_cid).await?;
-        let entry = Entry::try_from(entry_bytes.as_slice())?;
-        entries.insert(current_cid.clone(), entry.clone());
-        if entry.prev() == Null::null() {
-            break;
-        }
-        current_cid = entry.prev();
-    }
-    let foot = current_cid;
-
-    Ok((entries, foot))
 }
 
 /// Vlad details

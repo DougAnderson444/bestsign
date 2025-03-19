@@ -3,6 +3,9 @@ use bestsign_core::ops::config::{LockScript, UnlockScript};
 use bestsign_core::ops::open::config::NewLogBuilder;
 use bestsign_core::ops::{create, CryptoManager};
 use bestsign_core::Error;
+
+use provenance_log::{multibase, multicodec, multihash, multikey, multisig};
+
 use multibase::Base;
 use multicodec::Codec;
 use multihash::EncodedMultihash;
