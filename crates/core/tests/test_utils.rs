@@ -15,8 +15,8 @@ use bestsign_core::{
         update::{OpParams, UpdateConfig},
         update_plog,
     },
+    provenance_log::Key,
     resolve::{get_entry_chain, Resolver},
-    Key,
 };
 use blockstore::{Blockstore as _, InMemoryBlockstore};
 use cid::Cid;
@@ -25,7 +25,7 @@ use crate::fixtures::{lock_script, unlock_script};
 
 mod tests {
 
-    use bestsign_core::{Entry, Script};
+    use bestsign_core::{provenance_log::Script, resolve::resolve_plog};
 
     use crate::fixtures::init_logger;
 
@@ -175,6 +175,10 @@ mod tests {
                 }
             }
         }
+
+        // running resolve_plog should return the same plog
+        let resolved_plog = resolve_plog(&plog.vlad, &plog.head, resolver).await?;
+        assert_eq!(rebuilt_plog, resolved_plog);
 
         Ok(())
     }
