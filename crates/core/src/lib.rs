@@ -6,15 +6,14 @@ pub use error::Error;
 pub mod ops;
 pub use ops::open::Codec;
 
+/// Export provenance log utils
+pub use provenance_log;
 pub use provenance_log::{multicid, multikey, multisig, multitrait};
 
 pub use multicid::{Cid, EncodedVlad, Vlad};
 pub use multikey::multibase::Base;
 pub use multikey::{mk, EncodedMultikey, Multikey, Views};
 pub use multisig::Multisig;
-
-/// Export provenance log utils
-pub use provenance_log::{entry, Entry, Key, Log, Script};
 
 pub use multitrait::Null;
 

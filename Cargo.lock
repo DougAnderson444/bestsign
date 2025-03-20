@@ -6274,7 +6274,6 @@ version = "0.1.0"
 dependencies = [
  "bestsign-core",
  "futures",
- "multicid",
  "peerpiper",
  "peerpiper-native",
  "peerpiper-server",

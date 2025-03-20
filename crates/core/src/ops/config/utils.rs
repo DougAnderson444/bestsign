@@ -27,13 +27,13 @@ pub struct KeyCodec(pub Codec);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HashCodec(pub Codec);
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct PublicKeyParams {
-    pub codec: KeyCodec,
-    pub threshold: Option<usize>,
-    pub limit: Option<usize>,
-}
+//#[derive(Debug, Clone)]
+//#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+//pub struct PublicKeyParams {
+//    pub codec: KeyCodec,
+//    pub threshold: Option<usize>,
+//    pub limit: Option<usize>,
+//}
 
 impl Deref for VladKey {
     type Target = OpParams;

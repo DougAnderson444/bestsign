@@ -1,14 +1,20 @@
-use std::{future::Future, pin::Pin};
+use std::sync::atomic::AtomicBool;
 
-use bestsign_core::{Entry, Null};
+use bestsign_core::{
+    provenance_log::multicid::{vlad, Cid},
+    provenance_log::{Entry, Log},
+    Null,
+};
 use futures::StreamExt;
-use multicid::{vlad, Cid};
 use peerpiper::{
     core::events::{PublicEvent, SystemCommand},
     AllCommands, Events, Libp2pEvent, PeerPiper, ReturnValues,
 };
 use peerpiper_native::NativeBlockstoreBuilder;
 use peerpiper_server::web_server;
+
+// Whether the web server has started or not.
+static WEB_SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let blockstore = NativeBlockstoreBuilder::default().open().await.unwrap();
@@ -41,13 +47,16 @@ async fn handle_event(
     match event {
         Events::Outer(PublicEvent::ListenAddr { address, .. }) => {
             tracing::debug!("Received Node Address: {:?}", address);
-            tokio::spawn(web_server::serve(address.clone()));
+            if !WEB_SERVER_STARTED.load(std::sync::atomic::Ordering::Relaxed) {
+                tokio::spawn(web_server::serve(address.clone()));
+                WEB_SERVER_STARTED.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
         }
-        Events::Inner(Libp2pEvent::PutRecordRequest { source, record }) => {
+        Events::Inner(Libp2pEvent::PutRecordRequest { source: _, record }) => {
             // Validate the record is a Vlad with a valid Plog.
             // The record key:value will be vlad:Cid
             // To validate, we fetch all the Plog data by the head Cid
-            // using the peerpiper variable and it bitswap client.
+            // using peerpiper and its bitswap client.
             // Once we have all the Plog Cid data, we can reconstruct the Plog.
             let head_cid = Cid::try_from(record.value.as_slice()).unwrap();
 
