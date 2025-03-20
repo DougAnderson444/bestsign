@@ -1,2 +1,3 @@
 /target
 crates/superpeer/local_keypair
+crates/superpeer/.env
