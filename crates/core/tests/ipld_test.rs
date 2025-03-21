@@ -32,9 +32,7 @@ async fn test_ipld() {
 
     let unlock_script = Script::Code(Key::default(), unlock_str.to_string());
 
-    let config = NewLogBuilder::new(LockScript(lock_script), UnlockScript(unlock_script))
-        .try_build()
-        .unwrap();
+    let config = NewLogBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).build();
 
     let mut key_manager = TestKeyManager::new();
 

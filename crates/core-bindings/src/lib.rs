@@ -254,11 +254,7 @@ impl ProvenanceLogBuilder {
     /// Creates a new Plog using self.config
     #[wasm_bindgen]
     pub fn create(&mut self) -> Result<JsValue, JsValue> {
-        let config = self
-            .inner
-            .clone()
-            .try_build()
-            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let config = self.inner.clone().build();
 
         let log = create(&config, &mut self.key_manager).map_err(|e| {
             tracing::error!("Error creating log: {}", e);

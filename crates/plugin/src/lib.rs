@@ -14,7 +14,7 @@ use bindings::{
 //use chrono::{DateTime, Local, TimeZone};
 
 /// The provenance log.
-use bestsign_core::{utils, Base, EncodedVlad, Log, Vlad};
+use bestsign_core::{provenance_log::Log, utils, Base, EncodedVlad, Vlad};
 
 use getrandom::register_custom_getrandom;
 

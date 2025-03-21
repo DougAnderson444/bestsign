@@ -25,7 +25,11 @@ use crate::fixtures::{lock_script, unlock_script};
 
 mod tests {
 
-    use bestsign_core::{provenance_log::Script, resolve::resolve_plog};
+    use bestsign_core::{
+        blockstore_resolver::BlockstoreResolver,
+        provenance_log::Script,
+        resolve::{resolve_plog, ResolvedPlog},
+    };
 
     use crate::fixtures::init_logger;
 
@@ -48,7 +52,7 @@ mod tests {
             LockScript(lock_script.clone()),
             UnlockScript(unlock_script.clone()),
         )
-        .try_build()?;
+        .build();
 
         let mut key_manager = TestKeyManager::new();
 
@@ -126,7 +130,7 @@ mod tests {
         }
 
         // get all the data from the blockstore
-        let resolver = Resolve { blockstore };
+        let resolver = BlockstoreResolver { blockstore };
 
         assert_eq!(plog.entries.len(), 3);
 
@@ -175,45 +179,44 @@ mod tests {
                 }
             }
         }
-
         // running resolve_plog should return the same plog
-        let resolved_plog = resolve_plog(&plog.vlad, &plog.head, resolver).await?;
-        assert_eq!(rebuilt_plog, resolved_plog);
+        let resolved = resolve_plog(&plog.vlad, &plog.head, resolver).await?;
+        assert_eq!(rebuilt_plog, resolved.log);
 
+        // We should also check that verification counts were collected
+        assert!(
+            !resolved.verification_counts.is_empty(),
+            "Verification counts should not be empty"
+        );
+
+        // Log the verification counts and total
+        tracing::info!("Verification counts: {:?}", resolved.verification_counts);
+        tracing::info!("Total verification count: {}", resolved.total_count());
+
+        // Test comparison methods by creating a copy with artificially higher counts
+        let mut higher_counts = resolved.verification_counts.clone();
+        if let Some(first) = higher_counts.first_mut() {
+            *first += 10; // Increase first count
+        }
+
+        let more_expensive = ResolvedPlog {
+            log: resolved.log.clone(),
+            verification_counts: higher_counts,
+        };
+
+        assert!(
+            resolved.is_cheaper_than(&more_expensive),
+            "Original should be cheaper than modified"
+        );
+        assert_eq!(resolved.compare(&more_expensive), std::cmp::Ordering::Less);
+        assert_eq!(rebuilt_plog, resolved.log);
+
+        // We should also check the total_count is non-zero
+        assert!(
+            resolved.total_count() > 0,
+            "Total count should be greater than zero"
+        );
+        tracing::info!("Total verification count: {}", resolved.total_count());
         Ok(())
     }
-}
-
-/// A resolver that fetches data from the blockstore.
-#[derive(Clone)]
-struct Resolve {
-    pub blockstore: Arc<Mutex<InMemoryBlockstore<64>>>,
-}
-
-impl Resolver for Resolve {
-    type Error = TestError;
-
-    fn resolve(
-        &self,
-        cid: &multicid::Cid,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Self::Error>> + Send>> {
-        let blockstore = self.blockstore.clone();
-        let cid_bytes: Vec<u8> = (cid.clone()).into();
-        Box::pin(async move {
-            let cid = Cid::try_from(cid_bytes)?;
-
-            let Some(block) = blockstore.lock().await.get(&cid).await? else {
-                panic!("Failed to get block from blockstore");
-            };
-            Ok(block)
-        })
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-enum TestError {
-    #[error("Blockstore error: {0}")]
-    BlockstoreError(#[from] blockstore::Error),
-    #[error("Cid error: {0}")]
-    CidError(#[from] cid::Error),
 }

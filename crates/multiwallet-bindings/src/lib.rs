@@ -7,7 +7,8 @@
 use std::collections::HashMap;
 
 use bestsign_core::ops::config::defaults::{DEFAULT_ENTRYKEY, DEFAULT_VLAD_KEY};
-use bestsign_core::{Codec, Key, Multikey};
+use bestsign_core::provenance_log::Key;
+use bestsign_core::{Codec, Multikey};
 use multikey::{mk, EncodedMultikey, Views as _};
 use seed_keeper_core::credentials::{Credentials, Wallet};
 use serde::{Deserialize, Serialize};

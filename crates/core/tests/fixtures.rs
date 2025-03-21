@@ -143,8 +143,7 @@ pub fn generate_plog() -> Result<Log, Box<dyn std::error::Error>> {
     let lock_script = lock_script();
     let unlock_script = unlock_script();
 
-    let config =
-        NewLogBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).try_build()?;
+    let config = NewLogBuilder::new(LockScript(lock_script), UnlockScript(unlock_script)).build();
 
     let mut key_manager = TestKeyManager::new();
 

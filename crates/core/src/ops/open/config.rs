@@ -128,8 +128,8 @@ impl NewLogBuilder {
     }
 
     /// Build the Config
-    pub fn try_build(self) -> Result<Config, Box<dyn std::error::Error>> {
-        Ok(Config {
+    pub fn build(self) -> Config {
+        Config {
             vlad_params: self.vlad_params,
             entrykey_params: self.entrykey_params,
             pubkey_params: self.pubkey_params,
@@ -137,6 +137,6 @@ impl NewLogBuilder {
             entry_lock_script: self.entry_lock_script,
             entry_unlock_script: self.entry_unlock_script,
             additional_ops: self.additional_ops,
-        })
+        }
     }
 }

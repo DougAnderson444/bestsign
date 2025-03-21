@@ -283,7 +283,7 @@ mod tests {
             LockScript(lock_script.clone()),
             UnlockScript(unlock_script.clone()),
         )
-        .try_build()?;
+        .build();
 
         let mut key_manager = TestKeyManager::new();
 
