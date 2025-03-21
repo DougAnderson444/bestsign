@@ -5,12 +5,8 @@ use std::{
 };
 
 use bestsign_core::{
-    provenance_log::{
-        multicid::{self, vlad, Cid},
-        Entry, Log,
-    },
+    provenance_log::multicid::{self, vlad, Cid},
     resolve::{resolve_plog, Resolver},
-    Null,
 };
 use futures::StreamExt;
 use peerpiper::{
@@ -77,6 +73,11 @@ impl SuperPeer {
                 let head = Cid::try_from(record.value.as_slice())?;
 
                 let _resolved_plog = resolve_plog(&vlad, &head, self.clone()).await?;
+
+                // TODO: Compare the check counts of the Resolvedlog to any existing Plog
+                // in DHT + Blockstore, keep the log with the lowest count.
+                // For now, since all verified Plogs are valid, we'll start with
+                // keeping that last written / published one.
 
                 // If we made it this far, it means we have a valid Plog and we should Put the
                 // Record.
