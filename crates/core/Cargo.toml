@@ -5,8 +5,10 @@ edition = "2021"
 rust-version.workspace = true # Inherit from workspace
 
 [features]
-wasm = ["getrandom/js"] # needed for CI testing on wasm32-unknown-unknown
+wasm = ["getrandom/js"]                                 # needed for CI testing on wasm32-unknown-unknown
 serde = ["dep:serde"]
+blockstore = ["dep:blockstore", "dep:tokio", "dep:cid"]
+default = ["blockstore"]
 
 [dependencies]
 thiserror = "2"
@@ -14,6 +16,10 @@ provenance-log = { workspace = true, features = ["rhai"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 tracing = "0.1.40"
 indexmap = "2.8.0"
+# Optional dependencies 
+blockstore = { version = "0.7.1", optional = true }
+tokio = { version = "1.29.0", features = ["sync"], optional = true }
+cid = { version = "0.11.1", optional = true }
 
 [dev-dependencies]
 bestsign-core = { workspace = true, features = ["serde"] }

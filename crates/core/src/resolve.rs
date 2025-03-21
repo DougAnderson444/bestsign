@@ -11,6 +11,10 @@
 //! Users can implement the [Resolver] trait to define how to resolve the data
 //! from a CID chain. Then, the [get_entry_chain] function can be used to get
 //! the entries from the head CID down to the foot CID.
+
+#[cfg(feature = "blockstore")]
+pub mod blockstore_resolver;
+
 use provenance_log::{multicid, multicodec, multihash, multitrait, multiutil};
 
 use indexmap::IndexMap;
@@ -18,7 +22,7 @@ use multicid::Cid;
 use multitrait::Null;
 use multiutil::CodecInfo;
 use provenance_log::Entry;
-use std::{future::Future, pin::Pin};
+use std::{cmp::Ordering, future::Future, pin::Pin};
 
 /// Error types for resolution operations
 #[derive(thiserror::Error, Debug)]
@@ -148,13 +152,67 @@ pub async fn get_entry_chain(
     Ok(entries)
 }
 
-/// Giventhe vlad and the head Cid, resolve the Plog entries,
-/// rebuild tkhe Plog, and verify it.
+/// Result of resolving and verifying a Plog
+#[derive(Debug, Clone)]
+pub struct ResolvedPlog {
+    /// The reconstructed and verified provenance log
+    pub log: provenance_log::Log,
+
+    /// The verification counts for each step in the verification process
+    /// Stored in order from latest to earliest entry
+    pub verification_counts: Vec<usize>,
+}
+
+impl ResolvedPlog {
+    /// Compare this resolved plog with another and determine which has the lower verification cost
+    ///
+    /// Returns:
+    /// - Ordering::Less if this plog has a lower verification cost
+    /// - Ordering::Greater if the other plog has a lower verification cost
+    /// - Ordering::Equal if they have the same verification cost
+    ///
+    /// The comparison is done by examining each verification step, starting from the most recent entry.
+    /// At the first differing count, the plog with the lower count is considered "less".
+    pub fn compare(&self, other: &ResolvedPlog) -> std::cmp::Ordering {
+        // Compare counts from the most recent (latest) entries first
+        for (self_count, other_count) in self
+            .verification_counts
+            .iter()
+            .zip(other.verification_counts.iter())
+        {
+            match self_count.cmp(other_count) {
+                std::cmp::Ordering::Equal => continue, // If equal, check the next count
+                order => return order, // Return the ordering at the first difference
+            }
+        }
+
+        // If we've compared all common entries and they're equal, compare by length
+        // Longer chains are kept as this is how they are updated
+        // Keep longer is same.
+        other
+            .verification_counts
+            .len()
+            .cmp(&self.verification_counts.len())
+    }
+
+    /// Calculate the total verification count across all steps
+    pub fn total_count(&self) -> usize {
+        self.verification_counts.iter().sum()
+    }
+
+    /// Returns true if this plog has a lower verification cost than the other
+    pub fn is_cheaper_than(&self, other: &ResolvedPlog) -> bool {
+        self.compare(other) == std::cmp::Ordering::Less
+    }
+}
+
+/// Given the vlad and the head Cid, resolve the Plog entries,
+/// rebuild the Plog, and verify it.
 pub async fn resolve_plog(
     vlad: &multicid::Vlad,
     head_cid: &multicid::Cid,
     resolver: impl Resolver + Clone,
-) -> Result<provenance_log::Log, ResolveError> {
+) -> Result<ResolvedPlog, ResolveError> {
     let fetched_entries = get_entry_chain(head_cid.clone(), resolver.clone()).await?;
 
     // Reconstruct the plog from the fetched entries
@@ -194,10 +252,14 @@ pub async fn resolve_plog(
         debug_assert_eq!(rebuilt_plog.entries[head_cid], head_entry.clone());
     }
 
+    // Collect individual verification counts
+    let mut verification_counts = Vec::new();
+
     // the log should also verify
     for ret in verify_iter {
         match ret {
             Ok((count, entry, kvp)) => {
+                verification_counts.push(count);
                 tracing::trace!("Verified entry: {:#?}", entry);
                 tracing::trace!("Verified count: {:#?}", count);
                 tracing::trace!("Verified kvp: {:#?}", kvp);
@@ -209,5 +271,24 @@ pub async fn resolve_plog(
         }
     }
 
-    Ok(rebuilt_plog)
+    Ok(ResolvedPlog {
+        log: rebuilt_plog,
+        verification_counts,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::blockstore_resolver::BlockstoreResolver;
+
+    use super::*;
+    use blockstore::{Blockstore as _, InMemoryBlockstore};
+    use std::sync::Arc;
+    use tokio::sync::Mutex;
+
+    #[tokio::test]
+    async fn test_resolve_plog() {
+        let blockstore = Arc::new(Mutex::new(InMemoryBlockstore::<64>::new()));
+        let resolver = BlockstoreResolver { blockstore };
+    }
 }

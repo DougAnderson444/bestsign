@@ -22,4 +22,8 @@ pub mod utils;
 /// Resolving utilities
 pub mod resolve;
 
+/// If [blockstore] feature is enabled, export blockstore module
+#[cfg(feature = "blockstore")]
+pub use resolve::blockstore_resolver;
+
 pub use multikey::multicrates::*;
