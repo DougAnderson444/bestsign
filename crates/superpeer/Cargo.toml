@@ -10,9 +10,9 @@ path = "./src/bin/main.rs"
 
 [dependencies]
 bestsign-core = { path = "../core" }
-peerpiper = { path = "../../../peerpiper/crates/peerpiper" }
-peerpiper-native = { path = "../../../peerpiper/crates/peerpiper-native" }
-peerpiper-server = { path = "../../../peerpiper/crates/peerpiper-server" }
+peerpiper = { git = "https://github.com/PeerPiper/peerpiper.git" }
+peerpiper-native = { git = "https://github.com/PeerPiper/peerpiper.git" }
+peerpiper-server = { git = "https://github.com/PeerPiper/peerpiper.git" }
 provenance-log = { workspace = true, features = ["rhai"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

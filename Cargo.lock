@@ -4663,6 +4663,7 @@ dependencies = [
 [[package]]
 name = "peerpiper"
 version = "0.2.0"
+source = "git+https://github.com/PeerPiper/peerpiper.git#e46017439cbb1070d2c9990a77aba45482e7d186"
 dependencies = [
  "cfg-if",
  "futures",
@@ -4679,6 +4680,7 @@ dependencies = [
 [[package]]
 name = "peerpiper-browser"
 version = "0.1.8"
+source = "git+https://github.com/PeerPiper/peerpiper.git#e46017439cbb1070d2c9990a77aba45482e7d186"
 dependencies = [
  "anyhow",
  "blockstore",
@@ -4711,6 +4713,7 @@ dependencies = [
 [[package]]
 name = "peerpiper-core"
 version = "0.3.0"
+source = "git+https://github.com/PeerPiper/peerpiper.git#e46017439cbb1070d2c9990a77aba45482e7d186"
 dependencies = [
  "base64 0.20.0",
  "beetswap",
@@ -4734,12 +4737,14 @@ dependencies = [
  "tokio",
  "tracing",
  "wasm-bindgen-futures",
+ "web-time",
  "zeroize",
 ]
 
 [[package]]
 name = "peerpiper-native"
 version = "0.1.0"
+source = "git+https://github.com/PeerPiper/peerpiper.git#e46017439cbb1070d2c9990a77aba45482e7d186"
 dependencies = [
  "anyhow",
  "blockstore",
@@ -4761,6 +4766,7 @@ dependencies = [
 [[package]]
 name = "peerpiper-plugins"
 version = "0.1.0"
+source = "git+https://github.com/PeerPiper/peerpiper.git#e46017439cbb1070d2c9990a77aba45482e7d186"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4786,6 +4792,7 @@ dependencies = [
 [[package]]
 name = "peerpiper-server"
 version = "0.1.0"
+source = "git+https://github.com/PeerPiper/peerpiper.git#e46017439cbb1070d2c9990a77aba45482e7d186"
 dependencies = [
  "anyhow",
  "async-trait",

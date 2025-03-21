@@ -37,10 +37,9 @@ impl SuperPeer {
     pub async fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let blockstore = NativeBlockstoreBuilder::default().open().await.unwrap();
 
-        let (peerpiper, ready) = PeerPiper::new(blockstore, Default::default());
+        let peerpiper = PeerPiper::new(blockstore, Default::default());
+        let mut rx_evts = peerpiper.events().await?;
         self.peerpiper.lock().await.replace(peerpiper);
-
-        let mut rx_evts = ready.await?;
 
         loop {
             tokio::select! {
