@@ -10,7 +10,8 @@ use bestsign_core::{
         update::UpdateConfig,
         update_plog, CryptoManager,
     },
-    Codec, Key, Log, Multikey, Multisig, Script,
+    provenance_log::{Key, Log, Script},
+    Codec, Multikey, Multisig,
 };
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
@@ -281,7 +282,7 @@ impl ProvenanceLogBuilder {
 #[wasm_bindgen]
 pub struct ProvenanceLog {
     config: UpdateConfig,
-    log: bestsign_core::Log,
+    log: bestsign_core::provenance_log::Log,
     key_manager: KeyHandler,
 }
 
